@@ -1,0 +1,27 @@
+# Core FastAPI Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# Database (Supabase)
+supabase>=2.4.0
+
+# Gemini AI SDK & Vectorization
+google-genai>=0.1.1
+sentence-transformers>=2.5.0
+langchain-text-splitters>=0.0.1
+
+# Document Processing
+pypdf>=4.1.0
+
+# Google Drive API Integration
+google-auth>=2.28.0
+google-auth-oauthlib>=1.2.0
+google-api-python-client>=2.122.0
+
+# Security & Utilities
+cryptography>=42.0.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.1
+requests>=2.31.0
