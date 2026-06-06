@@ -15,13 +15,13 @@ from googleapiclient.http import MediaIoBaseUpload
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel
 from pypdf import PdfReader
-from sentence_transformers import SentenceTransformer
+
 from supabase import Client, create_client
 from cryptography.fernet import Fernet
 
 load_dotenv()
 
-app= FastAPI()
+app = FastAPI()
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_SECRET_KEY")
 if not ENCRYPTION_KEY:
@@ -39,6 +39,7 @@ def decrypt_token(encrypted_token: str) -> str:
     if not encrypted_token:
         return None
     return fernet.decrypt(encrypted_token.encode()).decode()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_URL], # Only allow your specific frontend domain
@@ -46,27 +47,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("❌ Missing environment variables! Check your local .env file setup.")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 print("⚡ Supabase integration initialized successfully!")
-model = SentenceTransformer("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True)
+
 try:
     ai_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    print("gemini success")
+    print("⚡ Gemini SDK Client initialized successfully!")
 except Exception as e:
     raise RuntimeError(f"❌ Critical Error: Failed to initialize Gemini Client. Check API Key. Details: {e}")
 
 # ---------------- GOOGLE OAUTH CONFIGURATION ----------------
-# Get these credentials from your Google Cloud Console (APIs & Services > Credentials)
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 GOOGLE_REDIRECT_URI = f"{BACKEND_URL}/api/auth/google/callback"
 
-# Tell Google we want to know who they are (userinfo) AND manage files we create (drive.file)
 SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
@@ -74,18 +74,30 @@ SCOPES = [
 ]
 
 class Chat(BaseModel):   
-    message: str                  # 👈 Must match frontend key exactly
+    message: str                  
     document_id: str
-    google_user_id: str           # 👈 Must match frontend key exactly
-    
-    
+    google_user_id: str           
     
 class FileUpload(BaseModel): 
-    file: UploadFile=File(...),
-    subject:str =Form(...),
+    file: UploadFile = File(...),
+    subject: str = Form(...),
     google_user_id: str = Form(...)
-    
-    
+
+# Helper function to get embeddings using Gemini Cloud API
+# Helper function to get embeddings using Gemini Cloud API
+def get_gemini_embedding(text: str) -> list[float]:
+    """Generates a 768-dimension text embedding using Gemini's cloud API instead of local models."""
+    try:
+        response = ai_client.models.embed_content(
+            model="gemini-embedding-2",  # 👈 FIXED: Added the mandatory 'models/' prefix path
+            contents=text,
+            config=types.EmbedContentConfig(output_dimensionality=768)
+        )
+        print(response.embeddings[0].values)
+        return response.embeddings[0].values
+    except Exception as e:
+        print(f"❌ Gemini Embedding Extraction Failed: {e}")
+        raise HTTPException(status_code=502, detail=f"Google GenAI Embedding service failure: {str(e)}")
 @app.get("/")
 def main():
     return "hello guys"
@@ -99,8 +111,8 @@ async def login():
         f"redirect_uri={GOOGLE_REDIRECT_URI}&"
         f"response_type=code&"
         f"scope={' '.join(SCOPES)}&"
-        f"access_type=offline&" # 👈 CRITICAL: This forces Google to give us a permanent refresh_token
-        f"prompt=consent"       # 👈 CRITICAL: Forces consent screen so refresh_token is sent every time
+        f"access_type=offline&" 
+        f"prompt=consent"       
     )
    
     return RedirectResponse(url=google_auth_url)
@@ -141,7 +153,6 @@ async def google_callback(code: str = None, error: str = None):
             "updated_at": "now()"
         }
         
-        # 🔒 SECURE: Encrypt the refresh token before it gets saved to Supabase
         if refresh_token:
             user_payload["refresh_token"] = encrypt_token(refresh_token)
             
@@ -153,32 +164,18 @@ async def google_callback(code: str = None, error: str = None):
     frontend_dashboard_url = f"{FRONTEND_URL}?login=success&email={email}&name={name}&google_user_id={google_user_id}"
     return RedirectResponse(url=frontend_dashboard_url)
 
-
 @app.post("/api/chat")
-async def chat_handler(request:Chat):
+async def chat_handler(request: Chat):
     try:
-        
         # ==========================================
-        # STEP 1: VECTORIZE USER QUERY (LOCAL)
+        # STEP 1: VECTORIZE USER QUERY VIA GEMINI
         # ==========================================
-        
-        raw_vector = model.encode([request.message])[0]
-        
-        # 2. 🌟 CRITICAL: Convert the NumPy array into a standard Python list of floats!
-        query_vector = raw_vector.tolist()
-        
+        query_vector = get_gemini_embedding(request.message)
 
         # ==========================================
         # STEP 2: RETRIEVE CONTEXT FROM SUPABASE
         # ==========================================
-        # 🎯 Cast the incoming Pydantic string to a strict Postgres UUID object
-       # 📡 Execute similarity matching query by passing a clean string format
-        
-        print("executing")
-        print("\nquery_embedding:" ,query_vector,"\n",
-            "match_threshold : 0.30,\n",
-            "match_count: 5,\n"
-            "filter_document_id:", str(request.document_id).strip(),"\n")
+        print("executing vector similarity search")
         
         db_response = supabase.rpc("match_document_chunks", {
             "query_embedding": query_vector,
@@ -187,47 +184,48 @@ async def chat_handler(request:Chat):
             "filter_document_id": str(request.document_id).strip() 
         }).execute()
         
-        print("\n",db_response)
         chunks = db_response.data
         
-       # ==========================================
-        # STEP 2: PREPARE AND CLEAN CONTEXT
         # ==========================================
+        # STEP 3: PREPARE AND CLEAN CONTEXT
+        # ==========================================
+        context_available = True
         if not chunks:
-            user_content = "No matching background reference text found in the document. Please inform the user that no context is available."
+            context_available = False
+            context_string = "No matching background reference text found in the document."
+            user_content = f"The user asked: '{request.message}'. The document context is empty. Please answer using your general knowledge."
         else:
             context_string = ""
             for item in chunks:
-                # 1. Clean the text: replaces newlines and ugly multiple spaces with a clean single space
                 clean_content = " ".join(item['content'].split())
-                
-                # 2. Append to our final context string
                 context_string += f"--- Chunk (Similarity: {item['similarity']:.2f}) ---\n"
                 context_string += f"{clean_content}\n\n"
 
-            # 3. Create the final clean prompt string (Placed SAFELY outside the loop)
             user_content = f"Context from documents:\n\n{context_string}\nBased on the context above, answer the user query: {request.message}"
 
         # ==========================================
-        # STEP 3: GENERATE GROUNDED ANSWER VIA GEMINI
+        # STEP 4: GENERATE GROUNDED ANSWER VIA GEMINI
         # ==========================================
+       
         system_instruction = (
-            "You are an elite academic tutor. Your task is to answer the user's question "
-            "using ONLY the provided reference context extracted from their document.\n"
-            "If the context does not contain the answer, state cleanly that the document "
-            "doesn't provide enough information. Do not invent details or facts."
+            "You are an elite academic tutor. Your primary goal is to answer the user's question "
+            "using the provided reference context extracted from their document.\n\n"
+            "CRITICAL FALLBACK INSTRUCTION:\n"
+            f"The status of context presence is: {context_available}.\n"
+            "If context_available is False, or if the context chunks provided do not contain the information "
+            "needed to answer the query, you MUST still answer the question using your general pre-trained knowledge. "
+            "However, you must exactly start your response with this notice phrase on a new line: "
+            "'(⚠️ Note: The uploaded PDF does not contain this topic, the following answer is based on general knowledge)' "
+            "followed by your answer. Do not skip this warning if the PDF doesn't have the topic."
         )
-
-        # Call Gemini 1.5 Flash - ultra-fast, lightweight, and free tier friendly
-        print("gemini--execute\n\n")
-        print(user_content)
+        
         try:
             response = ai_client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=user_content,  
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
-                    temperature=0.2,
+                    temperature=0.3,
                 )
             )
        
@@ -235,12 +233,11 @@ async def chat_handler(request:Chat):
             print("google api error: ", e)
             raise HTTPException(status_code=502, detail=f"Gemini Engine failed to generate a response: {str(e)}")
                     
-            
-            
         return {
-            "status": "success",
+           "status": "success",
             "answer": response.text,
-            "sources": [{"id": c["id"], "content": c["content"]} for c in chunks]
+            "fallback_triggered": not context_available or "(⚠️ Note:" in response.text,
+            "sources": [{"id": c["id"], "content": c["content"]} for c in chunks] if chunks else []
         }
 
     except Exception as e:
@@ -249,10 +246,8 @@ async def chat_handler(request:Chat):
 @app.get("/api/documents")
 async def get_documents(google_user_id: str):
     response = supabase.table("documents").select("*").eq("google_user_id", google_user_id).execute()
-    
     rows = response.data or []
     
-    # 🌟 Mutate rows to inject/overwrite the correct preview URL
     for row in rows:
         drive_id = row.get("google_drive_id")
         if drive_id:
@@ -261,8 +256,6 @@ async def get_documents(google_user_id: str):
     return rows
 
 def get_or_create_drive_folder(drive_service, folder_name: str, parent_id: str = None) -> str:
-    """Finds a folder by name and parent, or creates it if it doesn't exist."""
-    # 1. Build a strict search query to find the folder name
     query = f"name = '{folder_name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
     if parent_id:
         query += f" and '{parent_id}' in parents"
@@ -273,10 +266,8 @@ def get_or_create_drive_folder(drive_service, folder_name: str, parent_id: str =
     files = results.get('files', [])
 
     if files:
-        # Folder already exists! Return its ID
         return files[0]['id']
     
-    # 2. Folder does not exist, let's create it securely
     folder_metadata = {
         'name': folder_name,
         'mimeType': 'application/vnd.google-apps.folder'
@@ -290,26 +281,17 @@ def get_or_create_drive_folder(drive_service, folder_name: str, parent_id: str =
 def vectorize_pdf_stream(pdf_bytes: bytes, filename: str = "uploaded_file.pdf") -> list:
     """
     Processes a PDF from a raw byte stream completely in memory, slices it into 
-    overlapping chunks, and vectorizes it offline using nomic-embed-text-v1.5.
+    overlapping chunks, and vectorizes it via Gemini Cloud API.
     """
-    print(f"📖 Loading model: 'nomic-ai/nomic-embed-text-v1.5'...")
-    start_time = time.time()
-    
-    # Initialize Nomic Engine locally
-   
-    print(f"✅ Model initialized in {time.time() - start_time:.2f} seconds.")
-
     # ==========================================
     # STEP 1: EXTRACT TEXT FROM IN-MEMORY BYTES
     # ==========================================
     print(f"📄 Extracting text from streaming file: {filename}...")
     raw_text = ""
     try:
-        # Wrap the raw bytes in a BytesIO stream so PdfReader can read it like a file
         pdf_file = BytesIO(pdf_bytes)
         reader = PdfReader(pdf_file)
-        
-        for page_idx, page in enumerate(reader.pages):
+        for page in reader.pages:
             text = page.extract_text()
             if text:
                 raw_text += text + "\n"
@@ -334,48 +316,37 @@ def vectorize_pdf_stream(pdf_bytes: bytes, filename: str = "uploaded_file.pdf") 
     print(f"📝 Generated {len(chunks)} total text chunks.")
 
     # ==========================================
-    # STEP 3: PREPEND PREFIXES & EMBED OFFLINE
+    # STEP 3: EMBED CHUNKS VIA GEMINI API
     # ==========================================
-    print("📡 Generating 768-dimension vectors on local memory allocations...")
-    vector_start = time.time()
-    
-    # Nomic task instruction prefix for document indexing
-    prefixed_chunks = [f"search_document: {chunk}" for chunk in chunks]
-    
-    # Run embedding extraction inside container memory
-    embeddings = model.encode(prefixed_chunks)
-    print(f"⚡ Vector calculation complete in {time.time() - vector_start:.2f} seconds.")
-
-    # ==========================================
-    # STEP 4: FORMAT PAYLOAD FOR DATABASE
-    # ==========================================
+    print("📡 Requesting vector calculations from Gemini API Hub...")
     formatted_chunks_payload = []
-    for idx, vector in enumerate(embeddings):
+    
+    for idx, chunk in enumerate(chunks):
+        # Apply structured prefix for optimal retrieval grounding
+        prefixed_chunk = f"search_document: {chunk}"
+        vector = get_gemini_embedding(prefixed_chunk)
+        
         formatted_chunks_payload.append({
-            "content": chunks[idx],
-            "embedding": vector.tolist()  # Converts numpy array into a JSON-serializable list
+            "content": chunk,
+            "embedding": vector
         })
 
-    print("\n🎉 Pipeline In-Memory Execution Successful!")
+    print("🎉 In-Memory Embedding Extraction Complete!")
     return formatted_chunks_payload
+
 @app.post("/api/upload")
 async def upload_logic(
     file: UploadFile = File(...),
     subject: str = Form(...),
     google_user_id: str = Form(...)
 ):
-    # Read raw bytes into memory so we can read it twice (once for vectorizing, once for Drive)
-    # 1. Read the incoming multipart file stream straight into memory as bytes
     file_bytes = await file.read()
-    
-    # 2. Run your in-memory vectorization pipeline
     vectorized_chunks = vectorize_pdf_stream(file_bytes, filename=file.filename)
     
     if not vectorized_chunks:
         return {"status": "error", "message": "Failed to process document context."}
 
     try:
-        # 1. Fetch user credentials from Supabase
         db_response = supabase.table("user_sessions")\
             .select("refresh_token")\
             .eq("google_user_id", google_user_id)\
@@ -397,66 +368,45 @@ async def upload_logic(
             client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
         )
         drive_service = build('drive', 'v3', credentials=creds)
-        # 3. Resolve the Hierarchical Folder Tree Structure
-        # Step A: Get or create the main master directory -> "StudentOS"
         parent_os_id = get_or_create_drive_folder(drive_service, "StudentOS")
-        
-        # Step B: Get or create the subject directory inside StudentOS -> e.g., "CS" or "Math"
         subject_folder_id = get_or_create_drive_folder(drive_service, subject, parent_id=parent_os_id)
 
-        # 4. Stream and upload the file inside the resolved subject subfolder
-        
         file_stream = io.BytesIO(file_bytes)
-        print(file_stream)
         file_metadata = {
             'name': file.filename,
-            'parents': [subject_folder_id] # 👈 CRITICAL: Houses the document securely inside the subject subfolder
+            'parents': [subject_folder_id] 
         }
 
         media = MediaIoBaseUpload(file_stream, mimetype=file.content_type, resumable=True)
         
-        print(f"📡 Uploading '{file.filename}' straight into StudentOS/ {subject} / ...")
+        print(f"📡 Uploading '{file.filename}' straight into StudentOS/{subject}...")
         uploaded_file = drive_service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id, webViewLink'
         ).execute()
         
-        file_id = uploaded_file.get('id')
-        # Force the uploaded file to be readable via link inside your React iframe
-
-        # ========================================================
-        # 🌟 ADD THIS BLOCK RIGHT HERE TO FIX THE "ACCESS" ERROR:
-        # ========================================================
-        
-        
         try:
             user_payload = { 
-           
-            "google_drive_id": uploaded_file.get('id'),
-            "google_user_id":google_user_id,
-             "file_name": file.filename,
-             "subject_category": subject,
-             "mime_type":file.content_type,
-            "view_url": uploaded_file.get('webViewLink'),
-            "is_vectorized":"true"
-            
+                "google_drive_id": uploaded_file.get('id'),
+                "google_user_id": google_user_id,
+                "file_name": file.filename,
+                "subject_category": subject,
+                "mime_type": file.content_type,
+                "view_url": uploaded_file.get('webViewLink'),
+                "is_vectorized": "true"
             }
             
-            # Only overwrite the refresh_token if Google sent a new one along this specific handshake
-            print("\n\n",user_payload)
-            doc_res=supabase.table("documents").insert(user_payload).execute()
+            print("\nInserting document entry metadata:", user_payload)
+            doc_res = supabase.table("documents").insert(user_payload).execute()
             db_document_id = doc_res.data[0]['id']
             
             for chunk_data in vectorized_chunks:
                 chunk_data["document_id"] = db_document_id
 
-            # 3. Bulk insert chunks into 'document_chunks' table in a single trip
             supabase.table("document_chunks").insert(vectorized_chunks).execute()
 
         except Exception as e:
-            # Production fail-safe: Delete from Google Drive here if your DB write fails 
-            # so things don't get out of sync.
             raise HTTPException(status_code=500, detail=f"Database write operation aborted: {str(e)}")
 
         return {
@@ -469,10 +419,8 @@ async def upload_logic(
             print(f"❌ DRIVE TREE EXCEPTION: {str(err)}")
             raise HTTPException(status_code=500, detail=f"Google Drive folder orchestration failed: {str(err)}")
 
-
-    
 if __name__ == "__main__":
     import uvicorn
-    # Read the container PORT provided by Render/Railway, defaulting to 8000 locally
+    # 🌟 FIXED FOR PRODUCTION: Expose to 0.0.0.0 so Railway can proxy traffic inside the cluster container
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("student-backend:app", host="127.0.0.1", port=port, reload=True)
+    uvicorn.run("student-backend:app", host="0.0.0.0", port=port, reload=False)
