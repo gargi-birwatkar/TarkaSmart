@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+
 if (typeof document !== "undefined") {
   const style = document.createElement("style");
   style.innerHTML = `
@@ -12,45 +13,219 @@ if (typeof document !== "undefined") {
   `;
   document.head.appendChild(style);
 }
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 // ==========================================
-// 1. STREAMLINED GOOGLE SSO LOGIN COMPONENT
+// 1. ALL-IN-ONE LANDING & GOOGLE OAUTH LOGIN
+// ==========================================
+// ==========================================
+// 1. ALL-IN-ONE LANDING & GOOGLE OAUTH LOGIN
 // ==========================================
 function Login({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
+  const [activeFaq, setActiveFaq] = useState(null);
 
   const handleGoogleSignIn = () => {
     setLoading(true);
     window.location.href = `${API_BASE_URL}/api/auth/google/login`;
   };
+  const handleGuestSignIn = () => {
+    setLoading(true);
+    setTimeout(() => {
+      const mockProfile = {
+        email: "guest.reviewer@tarkasmart.dev",
+        name: "Guest Reviewer",
+        google_user_id: "TARKA_GUEST_MOCK_101"
+      };
+      setLoading(false);
+      onLoginSuccess(mockProfile); // Mounts the app as a guest
+    }, 600);
+  };
+  const features = [
+    {
+      icon: "📁",
+      title: "Granular Cloud Storage Isolation",
+      desc: "Integrates with Google Drive using strict, limited OAuth2 scopes to securely isolate, catalogue, and read course documents without compromising tenant data boundaries."
+    },
+    {
+      icon: "🧬",
+      title: "Deterministic Semantic Ingestion",
+      desc: "Extracts text layers from complex documents, applying optimized text-chunking strategies and sliding-window overlaps to preserve deep structural hierarchy."
+    },
+    {
+      icon: "⚡",
+      title: "Distributed Vector Embeddings",
+      desc: "Transforms raw text tokens into high-dimensional vector representations, indexing them in real-time into a Postgres database with pgvector extensions."
+    },
+    {
+      icon: "🧠",
+      title: "Context-Isolated Retrieval (RAG)",
+      desc: "Executes cosine similarity searches matching your real-time queries against indexed document chunks, filtering out external model hallucinations entirely."
+    }
+  ];
+
+  const faqs = [
+    {
+      q: "How does tarkaSmart secure my data during vector indexing?",
+      a: "Our backend architecture enforces strict cryptographic isolation. By requesting delegation through the limited `drive.file` OAuth scope, the application can only query files it explicitly stages, guaranteeing full data privacy."
+    },
+    {
+      q: "What prevents the LLM from hallucinating answers outside my syllabus?",
+      a: "We utilize a deterministic Retrieval-Augmented Generation (RAG) framework. User queries are embedded dynamically to pull context from your uploaded document. The LLM is bounded by runtime system prompts that restrict synthesis strictly to the retrieved vector chunks."
+    }
+  ];
 
   return (
-    <div style={authStyles.screen}>
-      <div style={authStyles.card}>
-        <div style={authStyles.header}>
-          <h1 style={authStyles.logo}>🎓 Student OS</h1>
-          <p style={authStyles.subtitle}>
-            Your entire semester's knowledge, vectorized and synced directly with your personal cloud storage.
+    <div style={landingStyles.wrapper}>
+      {/* BACKGROUND DECORATIONS */}
+      <div style={landingStyles.glowOrb1}></div>
+      <div style={landingStyles.glowOrb2}></div>
+
+      {/* HEADER NAVBAR */}
+      <nav style={landingStyles.navbar}>
+        <div style={landingStyles.navBrand}>💡 tarkaSmart</div>
+        <button
+          onClick={handleGoogleSignIn}
+          style={landingStyles.navBtn}
+          disabled={loading}
+        >
+          {loading ? "Initializing..." : "Launch Platform"}
+        </button>
+      </nav>
+
+      {/* HERO SECTION */}
+      <section style={landingStyles.heroSection}>
+        <div style={landingStyles.heroCard}>
+          <div style={landingStyles.badge}>v1.0 Production Architecture</div>
+          <h1 style={landingStyles.heroTitle}>
+            Your entire semester syllabus, <span style={landingStyles.gradientText}>vectorized.</span>
+          </h1>
+          <p style={landingStyles.heroSubtitle}>
+            A high-performance cognitive ingestion engine that parses academic documentation into isolated vector spaces, orchestrating deterministic context-matching for zero-hallucination document intelligence.
           </p>
-        </div>
 
-        <div style={authStyles.actionZone}>
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            style={authStyles.googleBtn}
-            disabled={loading}
-          >
-            <span style={{ marginRight: "12px", fontSize: "18px" }}>🔑</span>
-            {loading ? "Connecting to Google Account..." : "Sign In with Google"}
-          </button>
-        </div>
+          
+          <div style={styles.actionSection}>
+            {/* The 3-Button Grid Container */}
+            <div style={styles.buttonContainer}>
 
-        <p style={authStyles.footerText}>
-          🔒 Secure OAuth2 Delegation. Student OS only requests restricted access to files created by this application (`drive.file` scope).
-        </p>
-      </div>
+              {/* 1. Primary Google Login */}
+              <button
+                onClick={handleGoogleSignIn}
+                style={styles.primaryBtn}
+                disabled={loading}
+              >
+                <span style={{ marginRight: '8px', fontSize: '1.1rem' }}>🔑</span>
+                {loading ? "Initializing..." : "Sign In with Google"}
+              </button>
+
+              {/* 2. Aesthetic Guest Sandbox Pass */}
+              <button
+                type="button"
+                onClick={handleGuestSignIn}
+                style={styles.secondaryBtn}
+                disabled={loading}
+              >
+                <span style={{ marginRight: '8px', fontSize: '1.1rem' }}>⚡</span>
+                Explore as Guest
+              </button>
+
+              {/* 3. New Video Walkthrough Trigger */}
+              <button
+                type="button"
+                onClick={() => window.open('https://www.youtube.com/watch?v=YOUR_VIDEO_ID', '_blank')}
+                style={styles.videoBtn}
+              >
+                <span style={{ marginRight: '8px', fontSize: '1.1rem' }}>🎥</span>
+                Watch Demo
+              </button>
+
+            </div>
+
+
+            {/* Short On Time Context Subtext */}
+            <p style={styles.timeNotice}>
+              ⏱️ <strong>Short on time?</strong> Click <em>Watch Demo</em> for a 90-second system walkthrough, or use <em>Explore as Guest</em> to test the live pipeline instantly.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES SECTIONS */}
+      <section style={landingStyles.section}>
+        <h2 style={landingStyles.sectionTitle}>High-Retention Infrastructure Stack</h2>
+        <p style={landingStyles.sectionSubtitle}>Ditch flat directories. Leverage a modern computational pipeline built for immediate contextual discovery.</p>
+
+        <div style={landingStyles.featureGrid}>
+          {features.map((f, idx) => (
+            <div key={idx} style={landingStyles.featureCard}>
+              <div style={landingStyles.featureIcon}>{f.icon}</div>
+              <h3 style={landingStyles.featureCardTitle}>{f.title}</h3>
+              <p style={landingStyles.featureCardDesc}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* PIPELINE BREAKDOWN VISUAL */}
+      <section style={landingStyles.section}>
+        <div style={landingStyles.pipelineCard}>
+          <h3 style={landingStyles.pipelineTitle}>The Storage-to-Recall Pipeline</h3>
+          <div style={landingStyles.pipelineSteps}>
+            <div style={landingStyles.step}>
+              <div style={landingStyles.stepNum}>1</div>
+              <h4 style={landingStyles.stepHeader}>Drive Ingestion</h4>
+              <p style={landingStyles.stepDesc}>Secure Multipart API Upload & cloud staging</p>
+            </div>
+            <div style={landingStyles.pipelineArrow}>➔</div>
+            <div style={landingStyles.step}>
+              <div style={landingStyles.stepNum}>2</div>
+              <h4 style={landingStyles.stepHeader}>Tokenization & Chunking</h4>
+              <p style={landingStyles.stepDesc}>Recursive text splitting and meta-tag partitioning</p>
+            </div>
+            <div style={landingStyles.pipelineArrow}>➔</div>
+            <div style={landingStyles.step}>
+              <div style={landingStyles.stepNum}>3</div>
+              <h4 style={landingStyles.stepHeader}>Vector Indexing</h4>
+              <p style={landingStyles.stepDesc}>Embedding extraction into Postgres pgvector store</p>
+            </div>
+            <div style={landingStyles.pipelineArrow}>➔</div>
+            <div style={landingStyles.step}>
+              <div style={landingStyles.stepNum}>4</div>
+              <h4 style={landingStyles.stepHeader}>Semantic Synthesis</h4>
+              <p style={landingStyles.stepDesc}>Isolated context-matching via LLM reasoning</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section style={landingStyles.section}>
+        <h2 style={landingStyles.sectionTitle}>Architectural FAQ</h2>
+        <div style={landingStyles.faqContainer}>
+          {faqs.map((faq, idx) => (
+            <div
+              key={idx}
+              style={landingStyles.faqItem}
+              onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+            >
+              <div style={landingStyles.faqHeader}>
+                <span style={landingStyles.faqQuestion}>{faq.q}</span>
+                <span style={landingStyles.faqToggle}>{activeFaq === idx ? "−" : "+"}</span>
+              </div>
+              {activeFaq === idx && (
+                <div style={landingStyles.faqAnswer}>{faq.a}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SIMPLE FOOTER */}
+      <footer style={landingStyles.footer}>
+        <p>© 2026 tarkaSmart. Built for deep high-performance learning ecosystems.</p>
+      </footer>
     </div>
   );
 }
@@ -61,13 +236,14 @@ function Login({ onLoginSuccess }) {
 export default function App() {
   // 🔐 Active Authentication Session State (Persistent across refreshes)
   const [userSession, setUserSession] = useState(() => {
-    const savedSession = localStorage.getItem("student_os_session");
-    return savedSession ? JSON.parse(savedSession) : null;
+    const saved = localStorage.getItem("TarkaSmart_session");
+    return saved ? JSON.parse(saved) : null;
   });
-  // Add these inside your main App component state section
+
   const [subjectList, setSubjectList] = useState(["Computer Science", "Mathematics", "Physics", "General Study"]);
   const [isAddingNewSubject, setIsAddingNewSubject] = useState(false);
   const [newSubjectInput, setNewSubjectInput] = useState("");
+ 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("login") === "success") {
@@ -78,17 +254,30 @@ export default function App() {
       };
 
       // 💾 Save to disk so it survives page reloads!
-      localStorage.setItem("student_os_session", JSON.stringify(sessionData));
-
+      localStorage.setItem("TarkaSmart_session", JSON.stringify(sessionData));
       setUserSession(sessionData);
-      window.history.replaceState({}, document.title, "/");
+      window.history.replaceState(null, '', window.location.pathname);
+      window.location.reload();
     }
   }, []);
+  
+  const handleLoginSuccess = (profilePayload) => {
+    setUserSession(profilePayload);
+    window.location.reload();
+  };
 
-  // logout logic
+  if (!userSession) {
+    return <Login onLoginSuccess={(sessionData) => {
+      localStorage.setItem("TarkaSmart_session", JSON.stringify(sessionData));
+      setUserSession(sessionData);
+      window.location.reload();
+    }} />;
+  }
+ 
   const handleLogout = () => {
-    localStorage.removeItem("student_os_session");
+    localStorage.removeItem("TarkaSmart_session");
     setUserSession(null);
+    window.location.reload();
   };
 
   // ---------------- DOCUMENT STATE ----------------
@@ -97,8 +286,11 @@ export default function App() {
 
   // 📡 FETCH REAL-TIME SYNCD FILES FROM FASTAPI/SUPABASE BACKEND
   React.useEffect(() => {
-    if (!userSession?.google_user_id) return;
-
+   
+    if (!userSession) {
+      // PASS THE CALLBACK TO SET THE SESSION
+      return <Login onLoginSuccess={(sessionData) => setUserSession(sessionData)} />;
+    }
     const fetchUserDocuments = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/documents?google_user_id=${userSession.google_user_id}`);
@@ -118,7 +310,6 @@ export default function App() {
 
         setDocuments(normalizedData);
 
-        // Auto-select the first document in the normalized queue if one exists
         if (normalizedData && normalizedData.length > 0) {
           setSelectedDoc(normalizedData[0]);
         }
@@ -131,7 +322,7 @@ export default function App() {
   }, [userSession]);
 
   // ---------------- SUBJECT SELECTOR STATE ----------------
-  const [selectedSubject, setSelectedSubject] = useState("CS");
+  const [selectedSubject, setSelectedSubject] = useState("Computer Science");
 
   // ---------------- TASK STATE ----------------
   const [tasks, setTasks] = useState([
@@ -159,22 +350,20 @@ export default function App() {
   // 📏 Resizable Columns State Variables (Default Widths)
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [chatWidth, setChatWidth] = useState(350);
+  const [tasksHeight, setTasksHeight] = useState(200);
 
   // 🛠️ LEFT SIDEBAR RESIZER HANDLERS
   const startLeftResize = (e) => {
     e.preventDefault();
-
     const handleLeftMouseMove = (moveEvent) => {
       if (moveEvent.clientX > 200 && moveEvent.clientX < 500) {
         setSidebarWidth(moveEvent.clientX);
       }
     };
-
     const stopLeftMouseUp = () => {
       document.removeEventListener("mousemove", handleLeftMouseMove);
       document.removeEventListener("mouseup", stopLeftMouseUp);
     };
-
     document.addEventListener("mousemove", handleLeftMouseMove);
     document.addEventListener("mouseup", stopLeftMouseUp);
   };
@@ -182,21 +371,39 @@ export default function App() {
   // 🛠️ RIGHT CHAT RESIZER HANDLERS
   const startRightResize = (e) => {
     e.preventDefault();
-
     const handleRightMouseMove = (moveEvent) => {
       const newWidth = window.innerWidth - moveEvent.clientX;
       if (newWidth > 280 && newWidth < 600) {
         setChatWidth(newWidth);
       }
     };
-
     const stopRightMouseUp = () => {
       document.removeEventListener("mousemove", handleRightMouseMove);
       document.removeEventListener("mouseup", stopRightMouseUp);
     };
-
     document.addEventListener("mousemove", handleRightMouseMove);
     document.addEventListener("mouseup", stopRightMouseUp);
+  };
+
+  // 🛠️ TASKS PANEL HEIGHT RESIZER HANDLER
+  const startTasksResize = (mouseDownEvent) => {
+    mouseDownEvent.preventDefault();
+    const startHeight = tasksHeight;
+    const startY = mouseDownEvent.clientY;
+
+    const doDrag = (mouseMoveEvent) => {
+      const deltaY = mouseMoveEvent.clientY - startY;
+      const newHeight = Math.max(80, Math.min(500, startHeight - deltaY));
+      setTasksHeight(newHeight);
+    };
+
+    const stopDrag = () => {
+      document.removeEventListener("mousemove", doDrag);
+      document.removeEventListener("mouseup", stopDrag);
+    };
+
+    document.addEventListener("mousemove", doDrag);
+    document.addEventListener("mouseup", stopDrag);
   };
 
   // Guardrail layout toggle check
@@ -218,9 +425,7 @@ export default function App() {
 
   const toggleTask = (id) => {
     setTasks(
-      tasks.map((t) =>
-        t.id === id ? { ...t, completed: !t.completed } : t
-      )
+      tasks.map((t) => t.id === id ? { ...t, completed: !t.completed } : t)
     );
   };
 
@@ -236,7 +441,7 @@ export default function App() {
     formData.append("google_user_id", userSession.google_user_id);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload`, { // 👈 AFTER
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
         body: formData
       });
@@ -334,7 +539,6 @@ export default function App() {
     }
   };
 
-  // 🎨 Custom Text Formatter to translate Gemini's Markdown responses cleanly
   const formatAiResponse = (text) => {
     if (!text) return "";
 
@@ -390,150 +594,108 @@ export default function App() {
     }
     return url;
   };
-  const [tasksHeight, setTasksHeight] = useState(200); // Track starting height for tasks frame
 
-  const startTasksResize = (mouseDownEvent) => {
-    mouseDownEvent.preventDefault();
-    const startHeight = tasksHeight;
-    const startY = mouseDownEvent.clientY;
-
-    const doDrag = (mouseMoveEvent) => {
-      const deltaY = mouseMoveEvent.clientY - startY;
-      // Dragging DOWN increases deltaY, which expands the tasks panel layout
-      const newHeight = Math.max(80, Math.min(500, startHeight - deltaY));
-      setTasksHeight(newHeight);
-    };
-
-    const stopDrag = () => {
-      document.removeEventListener("mousemove", doDrag);
-      document.removeEventListener("mouseup", stopDrag);
-    };
-
-    document.addEventListener("mousemove", doDrag);
-    document.addEventListener("mouseup", stopDrag);
-  };
   return (
+    
     <div style={styles.outer}>
       <div style={styles.container}>
 
         {/* --- SIDEBAR MODULE --- */}
         <aside style={{ ...styles.sidebar, width: `${sidebarWidth}px` }}>
-          <h2 style={styles.brand}>🎓 Student OS</h2>
-          <p style={{ fontSize: "12px", color: "#4f46e5", margin: "-15px 0 15px 0", fontWeight: "600" }}>
-            👤 {userSession.name}
-            <span onClick={handleLogout} style={{ marginLeft: "10px", color: "#ef4444", cursor: "pointer" }}>🚪SignOut</span>
-          </p>
+          <div>
+            <h2 style={styles.brand}>🧠 TarkaSmart</h2>
+            <p style={{ fontSize: "12px", color: "#4f46e5", margin: "-15px 0 15px 0", fontWeight: "600" }}>
+              👤 {userSession.name}
+              <span onClick={handleLogout} style={{ marginLeft: "10px", color: "#ef4444", cursor: "pointer" }}>🚪SignOut</span>
+            </p>
 
-          <h4 style={styles.sectionHeading}>📁 Knowledge Hub</h4>
+            <h4 style={styles.sectionHeading}>📁 Knowledge Hub</h4>
+            <label style={styles.label}>Upload Category:</label>
 
-          <label style={styles.label}>Upload Category:</label>
-
-          {!isAddingNewSubject ? (
-            <select
-              value={selectedSubject}
-              onChange={(e) => {
-                if (e.target.value === "___ADD_NEW_SUBJECT___") {
-                  setIsAddingNewSubject(true);
-                } else {
-                  setSelectedSubject(e.target.value);
-                }
-              }}
-              style={styles.selectDropdown} // Kept your exact styling object here
-            >
-              <option value="">-- Select a Category --</option>
-
-              {/* Map through your dynamic list */}
-              {subjectList.map((sub, index) => (
-                <option key={index} value={sub}>
-                  📚 {sub}
-                </option>
-              ))}
-
-              {/* Special dynamic option item */}
-              <option value="___ADD_NEW_SUBJECT___" style={{ fontWeight: "bold", color: "#4f46e5" }}>
-                ➕ Add New Subject...
-              </option>
-            </select>
-          ) : (
-            /* This layout triggers automatically when the user selects "Add New Subject..." */
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <input
-                type="text"
-                placeholder="Enter new subject (e.g. Data Structures)"
-                value={newSubjectInput}
-                onChange={(e) => setNewSubjectInput(e.target.value)}
-                style={{
-                  padding: "10px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  outline: "none",
-                  flex: 1
-                }}
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const trimmed = newSubjectInput.trim();
-                  if (trimmed && !subjectList.includes(trimmed)) {
-                    // Add it to your selection list
-                    setSubjectList([...subjectList, trimmed]);
-                    // Automatically set it as the active selected subject
-                    setSelectedSubject(trimmed);
+            {!isAddingNewSubject ? (
+              <select
+                value={selectedSubject}
+                onChange={(e) => {
+                  if (e.target.value === "___ADD_NEW_SUBJECT___") {
+                    setIsAddingNewSubject(true);
+                  } else {
+                    setSelectedSubject(e.target.value);
                   }
-                  // Close the input field and reset strings
-                  setNewSubjectInput("");
-                  setIsAddingNewSubject(false);
                 }}
-                style={{
-                  padding: "10px 14px",
-                  background: "#4f46e5",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "600"
-                }}
+                style={styles.selectDropdown}
               >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAddingNewSubject(false);
-                  setNewSubjectInput("");
-                }}
-                style={{
-                  padding: "10px 14px",
-                  background: "#e5e7eb",
-                  color: "#374151",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px"
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-          <input
-            type="file"
-            accept="application/pdf"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-          />
+                <option value="">-- Select a Category --</option>
+                {subjectList.map((sub, index) => (
+                  <option key={index} value={sub}>
+                    📚 {sub}
+                  </option>
+                ))}
+                <option value="___ADD_NEW_SUBJECT___" style={{ fontWeight: "bold", color: "#4f46e5" }}>
+                  ➕ Add New Subject...
+                </option>
+              </select>
+            ) : (
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "14px" }}>
+                <input
+                  type="text"
+                  placeholder="E.g. Operating Systems"
+                  value={newSubjectInput}
+                  onChange={(e) => setNewSubjectInput(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    outline: "none",
+                    flex: 1
+                  }}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = newSubjectInput.trim();
+                    if (trimmed && !subjectList.includes(trimmed)) {
+                      setSubjectList([...subjectList, trimmed]);
+                      setSelectedSubject(trimmed);
+                    }
+                    setNewSubjectInput("");
+                    setIsAddingNewSubject(false);
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    background: "#4f46e5",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: "600"
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            )}
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            style={styles.button}
-          >
-            + Select PDF File
-          </button>
-          <div style={styles.treeContainer}>
+            <input
+              type="file"
+              accept="application/pdf"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={styles.button}
+            >
+              + Select PDF File
+            </button>
+          </div>
+
+          {/* Dynamic Scrollable Folder Tree Box */}
+          <div style={styles.treeWrapper}>
             {Object.entries(
               documents.reduce((acc, doc) => {
                 if (!acc[doc.subject]) acc[doc.subject] = [];
@@ -545,8 +707,8 @@ export default function App() {
                 <div style={styles.folderHeader}>
                   <span style={{ fontSize: "14px" }}>📁</span>
                   <span style={styles.folderName}>
-                    {subject === "CS" ? "💻 Computer Science" :
-                      subject === "Math" ? "📐 Mathematics" :
+                    {subject === "Computer Science" ? "💻 Computer Science" :
+                      subject === "Mathematics" ? "📐 Mathematics" :
                         subject === "Physics" ? "⚛️ Physics" : `📝 ${subject}`}
                   </span>
                   <span style={styles.fileCountBadge}>{files.length}</span>
@@ -578,9 +740,7 @@ export default function App() {
             ))}
           </div>
 
-
-
-          {/* ZONE 3: MOVABLE HORIZONTAL DIVIDER HANDLE */}
+          {/* ROW DIVIDER HANDLE FOR TASKS HEIGHT */}
           <div
             onMouseDown={startTasksResize}
             style={{
@@ -598,7 +758,7 @@ export default function App() {
             onMouseLeave={(e) => (e.target.style.background = "#e5e7eb")}
           />
 
-          {/* ZONE 4: FIXED INTERACTIVE TASKS CONTAINER ELEMENT */}
+          {/* FIXED INTERACTIVE TASKS CONTAINER */}
           <div
             style={{
               height: `${tasksHeight}px`,
@@ -608,7 +768,6 @@ export default function App() {
               flexShrink: 0
             }}
           >
-
             <h4 style={styles.sectionHeading}>📅 Tasks</h4>
             <form onSubmit={handleAddTask} style={styles.taskForm}>
               <input
@@ -641,7 +800,7 @@ export default function App() {
           </div>
         </aside>
 
-        {/* 🎛️ LEFT RESIZE HANDLE */}
+        {/* LEFT COLUMN COL-RESIZE HANDLE */}
         <div
           onMouseDown={startLeftResize}
           style={{
@@ -652,7 +811,7 @@ export default function App() {
           }}
         />
 
-        {/* --- MAIN MODULE: DRAG ZONE EMBEDDED WORKSPACE VIEWER --- */}
+        {/* --- MAIN MODULE: PDF VIEWER & WORKSPACE --- */}
         <main
           style={{
             ...styles.main,
@@ -712,14 +871,14 @@ export default function App() {
                   Active Workspace Viewer
                 </p>
                 <p style={{ color: "#6b7280", fontSize: "13px", maxWidth: "400px", margin: "0 auto" }}>
-                  Drag & Drop a local lecture note or study guide anywhere on this white screen area to isolate and vectorize its data under your active settings.
+                  Drag & Drop a local lecture note or study guide anywhere on this screen area to isolate and vectorize its data under your active settings.
                 </p>
               </div>
             )}
           </div>
         </main>
 
-        {/* 🎛️ RIGHT RESIZE HANDLE */}
+        {/* RIGHT COLUMN COL-RESIZE HANDLE */}
         <div
           onMouseDown={startRightResize}
           style={{
@@ -761,7 +920,7 @@ export default function App() {
                     color: msg.role === "user" ? "#bfdbfe" : "#4f46e5",
                     textAlign: "left"
                   }}>
-                    🔍 Supabase Vector Reference: {msg.source}
+                    🔍 Vector Reference: {msg.source}
                   </div>
                 )}
               </div>
@@ -788,7 +947,7 @@ export default function App() {
 }
 
 // ==========================================
-// 3. COMPLETE CSS COMPONENT GLOSSARY
+// 3. CORE FRONTEND COMPONENT GLOSSARY
 // ==========================================
 const styles = {
   spinner: {
@@ -797,53 +956,48 @@ const styles = {
     height: "40px",
     border: "4px solid #f3f4f6",
     borderTop: "4px solid #4f46e5",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite"
+    borderRadius: "50%"
   },
   outer: {
     display: "flex",
     flexDirection: "column",
     alignItems: "stretch",
-    height: "100vh",           // 👈 Forces exactly the viewable browser window height
-    width: "100%",             // 👈 Use 100% instead of 100vw to eliminate horizontal scrolling tracks
+    height: "100vh",
+    width: "100%",
     maxWidth: "100%",
-    overflow: "hidden",        // 👈 Prevents the global body page from scrolling outside the app frame
+    overflow: "hidden",
     background: "#f3f4f6",
-    margin: "0",               // 👈 Strips out native browser body boundaries
+    margin: "0",
     padding: "0",
     boxSizing: "border-box",
     fontFamily: "system-ui, sans-serif"
   },
   container: {
     display: "flex",
-    width: "100%",             // 👈 Spans perfectly across the inner available width
-    height: "100%",            // 👈 Takes up all vertical space inside the outer wrapper
+    width: "100%",
+    height: "100%",
     background: "white",
-    overflow: "hidden",        // 👈 Allows inner layout columns (like Chat) to handle their own scrolling
+    overflow: "hidden",
     boxSizing: "border-box"
   },
   sidebar: {
-    width: "280px",             // Ensure it has a solid, explicit width base
-    minWidth: "280px",
     padding: "20px",
     borderRight: "1px solid #e5e7eb",
     display: "flex",
     flexDirection: "column",
-    justifyContent: "space-between", // 👈 FIXED: Pushes structural items top and actions bottom
+    justifyContent: "space-between",
     background: "#ffffff",
     boxSizing: "border-box",
-    height: "100%",             // Takes full height of the viewport container
-    overflow: "hidden"          // 👈 FIXED: Disables global sidebar scroll so buttons never get lost
+    height: "100%",
+    overflow: "hidden"
   },
-
-  // ➕ ADD THIS NEW PROPERTY RIGHT HERE BELOW THE SIDEBAR OBJECT
   treeWrapper: {
-    flex: 1,                    // 👈 FIXED: Automatically takes up all available remaining vertical space
+    flex: 1,
     width: "100%",
-    overflowY: "auto",          // 👈 FIXED: Spawns scrollbars ONLY here when the document count grows
+    overflowY: "auto",
     overflowX: "hidden",
-    marginBottom: "20px",       // Creates a clean gap before the action zone starts
-    paddingRight: "4px"         // Slight padding clearance for smooth scrollbar tracking
+    marginBottom: "15px",
+    paddingRight: "4px"
   },
   brand: {
     fontSize: "20px",
@@ -876,12 +1030,17 @@ const styles = {
     cursor: "pointer",
     outline: "none"
   },
-  treeContainer: {
+  button: {
     width: "100%",
-    maxHeight: "260px",
-    overflowY: "auto",
-    marginBottom: "15px",
-    paddingRight: "4px"
+    padding: "10px",
+    background: "#4f46e5",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "600",
+    fontSize: "13px",
+    marginBottom: "15px"
   },
   folderGroup: {
     marginBottom: "12px",
@@ -940,106 +1099,102 @@ const styles = {
     padding: "20px",
     display: "flex",
     flexDirection: "column",
-    background: "#ffffff",
-    transition: "all 0.1s ease-out",
     overflow: "hidden"
   },
   mainHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "20px",
-    borderBottom: "1px solid #e5e7eb",
-    paddingBottom: "10px"
+    marginBottom: "15px"
   },
   badge: {
-    background: "#e0f2fe",
-    color: "#0369a1",
+    background: "#eef2ff",
+    color: "#4f46e5",
     padding: "4px 10px",
     borderRadius: "12px",
     fontSize: "12px",
     fontWeight: "600"
   },
-  miniBadge: {
-    background: "#f3f4f6",
-    color: "#4b5563",
-    padding: "2px 6px",
-    borderRadius: "4px",
-    fontSize: "10px",
-    fontWeight: "bold",
+  pdfBox: {
+    flex: 1,
+    background: "#f9fafb",
+    border: "1px dashed #e5e7eb",
+    borderRadius: "12px",
     display: "flex",
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  dragOverlayText: {
+    color: "#2563eb",
+    fontWeight: "600",
+    padding: "40px",
+    textAlign: "center",
+    fontSize: "15px"
   },
   chat: {
     borderLeft: "1px solid #e5e7eb",
-    padding: "20px",
     display: "flex",
     flexDirection: "column",
     background: "#ffffff",
+    height: "100%",
     boxSizing: "border-box"
   },
   chatHeader: {
-    margin: "0 0 15px 0",
+    padding: "16px 20px",
+    margin: 0,
+    borderBottom: "1px solid #e5e7eb",
     fontSize: "16px",
-    fontWeight: "600",
-    color: "#111827"
+    fontWeight: "700"
   },
   chatBox: {
     flex: 1,
+    padding: "20px",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-    paddingBottom: "15px"
+    gap: "12px"
   },
   msg: {
-    padding: "12px 16px",
+    padding: "10px 14px",
     borderRadius: "12px",
     fontSize: "14px",
-    lineHeight: "1.5",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-    wordBreak: "break-word",
-    overflowWrap: "anywhere"
-  },
-  loadingBubble: {
-    alignSelf: "flex-start",
-    padding: "10px 14px",
-    background: "#f3f4f6",
-    borderRadius: "8px",
-    color: "#6b7280",
-    fontSize: "14px"
+    lineHeight: "1.4"
   },
   source: {
     fontSize: "11px",
     marginTop: "6px",
-    fontWeight: "500",
-    borderTop: "1px dashed rgba(0,0,0,0.1)",
-    paddingTop: "4px"
+    fontWeight: "500"
   },
-  list: {
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-    overflowY: "auto",
-    maxHeight: "200px"
+  loadingBubble: {
+    alignSelf: "flex-start",
+    color: "#6b7280",
+    fontSize: "13px",
+    fontStyle: "italic",
+    padding: "4px 0"
   },
-  button: {
-    width: "100%",
-    padding: "10px",
+  chatForm: {
+    padding: "16px 20px",
+    borderTop: "1px solid #e5e7eb",
+    display: "flex",
+    gap: "10px"
+  },
+  chatInput: {
+    flex: 1,
+    padding: "10px 14px",
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
+    fontSize: "14px",
+    outline: "none"
+  },
+  chatButton: {
+    padding: "10px 16px",
     background: "#4f46e5",
     color: "white",
     border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "500",
-    fontSize: "14px",
-    transition: "background 0.2s"
-  },
-  divider: {
-    border: "0",
-    height: "1px",
-    background: "#e5e7eb",
-    margin: "15px 0"
+    borderRadius: "8px",
+    fontWeight: "600",
+    cursor: "pointer"
   },
   taskForm: {
     display: "flex",
@@ -1051,122 +1206,380 @@ const styles = {
     padding: "6px 10px",
     border: "1px solid #d1d5db",
     borderRadius: "6px",
-    fontSize: "14px",
+    fontSize: "13px",
     outline: "none"
   },
   taskButton: {
     padding: "6px 12px",
-    background: "#1f2937",
+    background: "#111827",
     color: "white",
     border: "none",
     borderRadius: "6px",
     cursor: "pointer",
+    fontSize: "13px",
     fontWeight: "500"
+  },
+  list: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0,
+    overflowY: "auto",
+    flex: 1
   },
   taskItem: {
     display: "flex",
     alignItems: "center",
-    padding: "4px 4px",
-    fontSize: "14px"
+    padding: "6px 4px",
+    fontSize: "13px"
   },
-  pdfBox: {
-    flex: 1,
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "#f9fafb",
-    overflow: "hidden"
-  },
-  dragOverlayText: {
-    fontSize: "16px",
-    color: "#2563eb",
-    fontWeight: "600",
-    textAlign: "center"
-  },
-  chatForm: {
-    display: "flex",
-    gap: "8px"
-  },
-  chatInput: {
-    flex: 1,
-    padding: "10px",
-    border: "1px solid #d1d5db",
-    borderRadius: "6px",
-    fontSize: "14px",
-    outline: "none"
-  },
-  chatButton: {
-    padding: "10px 16px",
-    background: "#4f46e5",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "500"
-  }
+ 
+    actionSection: {
+      width: '100%',
+      maxWidth: '720px',   /* Expanded slightly to fit 3 columns cleanly */
+      margin: '32px auto',
+      textAlign: 'center',
+      boxSizing: 'border-box',
+    },
+    buttonContainer: {
+      display: 'flex',
+      gap: '12px',         /* Tightened gap for better three-column aesthetics */
+      width: '100%',
+      marginBottom: '16px',
+    },
+    primaryBtn: {
+      flex: 1,
+      backgroundColor: '#ffffff',
+      color: '#121212',
+      border: 'none',
+      padding: '14px 16px',
+      borderRadius: '8px',
+      fontSize: '0.9rem',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'background-color 0.2s ease',
+    },
+    secondaryBtn: {
+      flex: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      color: '#ffffff',
+      border: '1px solid rgba(255, 255, 255, 0.15)',
+      padding: '14px 16px',
+      borderRadius: '8px',
+      fontSize: '0.9rem',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.2s ease',
+    },
+    videoBtn: {
+      flex: 1,
+      backgroundColor: 'rgba(168, 85, 247, 0.1)', /* Subtle tech-purple tint */
+      color: '#c084fc',
+      border: '1px solid rgba(168, 85, 247, 0.3)',
+      padding: '14px 16px',
+      borderRadius: '8px',
+      fontSize: '0.9rem',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.2s ease',
+    },
+    timeNotice: {
+      fontSize: '0.85rem',
+      color: '#a3a3a3',
+      margin: '12px 0 0 0',
+      lineHeight: '1.4',
+      letterSpacing: '0.2px',
+    }
+
 };
 
-const authStyles = {
-  screen: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-    width: "100%",              // 👈 FIXED: Changed from 100vw to center the card without pushing it right
-    maxWidth: "100%",           // 👈 FIXED
-    boxSizing: "border-box",    // 👈 FIXED
-    background: "#f3f4f6",
-    fontFamily: "system-ui, sans-serif"
+// ==========================================
+// 4. LANDING PAGE INLINE MODERN THEME STYLES
+// ==========================================
+const landingStyles = {
+  wrapper: {
+    backgroundColor: "#0d0e12",
+    color: "#f3f4f6",
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    minHeight: "100vh",
+    position: "relative",
+    overflowX: "hidden",
+    overflowY: "auto",
+    paddingBottom: "40px",
+    width: "100%"
   },
-  card: {
-    width: "420px",
-    background: "#ffffff",
-    padding: "45px",
-    borderRadius: "16px",
-    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    boxSizing: "border-box"     // 👈 FIXED: Safely clusters internal padding metrics
+  glowOrb1: {
+    position: "absolute",
+    width: "400px",
+    height: "400px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%)",
+    top: "-100px",
+    left: "-100px",
+    zIndex: 0
   },
-  header: {
+  glowOrb2: {
+    position: "absolute",
+    width: "500px",
+    height: "500px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(168,85,247,0.12) 0%, rgba(0,0,0,0) 70%)",
+    top: "400px",
+    right: "-100px",
+    zIndex: 0
+  },
+  navbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    maxWidth: "1100px",
+    margin: "0 auto",
+    padding: "24px 20px",
+    position: "relative",
+    zIndex: 10
+  },
+  navBrand: {
+    fontSize: "22px",
+    fontWeight: "700",
+    letterSpacing: "-0.5px"
+  },
+  navBtn: {
+    background: "rgba(255, 255, 255, 0.08)",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    color: "#fff",
+    padding: "8px 16px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "500"
+  },
+  heroSection: {
+    maxWidth: "900px",
+    margin: "40px auto 80px auto",
+    padding: "0 20px",
+    position: "relative",
+    zIndex: 10
+  },
+  heroCard: {
+    background: "rgba(20, 22, 28, 0.7)",
+    backdropFilter: "blur(12px)",
+    border: "1px solid rgba(255, 255, 255, 0.06)",
+    borderRadius: "24px",
+    padding: "60px 40px",
     textAlign: "center",
-    marginBottom: "32px"
+    boxShadow: "0 20px 40px rgba(0,0,0,0.4)"
   },
-  logo: {
-    fontSize: "32px",
+  badge: {
+    display: "inline-block",
+    background: "linear-gradient(90deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2))",
+    border: "1px solid rgba(168,85,247,0.4)",
+    color: "#c084fc",
+    padding: "4px 12px",
+    borderRadius: "20px",
+    fontSize: "12px",
+    fontWeight: "600",
+    marginBottom: "24px",
+    letterSpacing: "0.5px"
+  },
+  heroTitle: {
+    fontSize: "44px",
     fontWeight: "800",
-    color: "#111827",
-    margin: "0 0 12px 0",
-    letterSpacing: "-0.025em"
+    letterSpacing: "-1.5px",
+    lineHeight: "1.2",
+    margin: "0 0 20px 0",
+    color: "#ffffff"
   },
-  subtitle: {
-    fontSize: "14px",
-    color: "#4b5563",
-    margin: 0,
-    lineHeight: "1.6"
+  gradientText: {
+    background: "linear-gradient(90deg, #6366f1, #a855f7)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent"
+  },
+  heroSubtitle: {
+    fontSize: "17px",
+    lineHeight: "1.6",
+    color: "#9ca3af",
+    maxWidth: "700px",
+    margin: "0 auto 40px auto"
   },
   actionZone: {
-    width: "100%",
-    marginBottom: "24px"
+    maxWidth: "480px",
+    margin: "0 auto"
   },
   googleBtn: {
     width: "100%",
-    padding: "14px",
-    background: "#111827",
-    color: "#ffffff",
+    backgroundColor: "#ffffff",
+    color: "#111827",
     border: "none",
-    borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "600"
+    padding: "15px 24px",
+    borderRadius: "12px",
+    fontSize: "16px",
+    fontWeight: "600",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 12px rgba(255,255,255,0.1)"
   },
-  footerText: {
-    fontSize: "11px",
+  securityFooter: {
+    fontSize: "12px",
     color: "#6b7280",
-    textAlign: "center",
+    marginTop: "16px",
+    lineHeight: "1.4"
+  },
+  section: {
+    maxWidth: "1100px",
+    margin: "0 auto 100px auto",
+    padding: "0 20px",
+    position: "relative",
+    zIndex: 10,
+    textAlign: "center"
+  },
+  sectionTitle: {
+    fontSize: "32px",
+    fontWeight: "700",
+    letterSpacing: "-0.5px",
+    margin: "0 0 12px 0"
+  },
+  sectionSubtitle: {
+    fontSize: "16px",
+    color: "#9ca3af",
+    marginBottom: "48px"
+  },
+  featureGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "24px"
+  },
+  featureCard: {
+    background: "rgba(255, 255, 255, 0.02)",
+    border: "1px solid rgba(255, 255, 255, 0.05)",
+    borderRadius: "16px",
+    padding: "32px 24px",
+    textAlign: "left"
+  },
+  featureIcon: {
+    fontSize: "28px",
+    marginBottom: "16px",
+    background: "rgba(255,255,255,0.04)",
+    width: "50px",
+    height: "50px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "10px"
+  },
+  featureCardTitle: {
+    fontSize: "18px",
+    fontWeight: "600",
+    margin: "0 0 10px 0",
+    color: "#ffffff"
+  },
+  featureCardDesc: {
+    fontSize: "14px",
     lineHeight: "1.5",
+    color: "#9ca3af",
     margin: 0
+  },
+  pipelineCard: {
+    background: "linear-gradient(135deg, rgba(20,22,28,0.8) 0%, rgba(10,11,14,0.8) 100%)",
+    border: "1px solid rgba(99,102,241,0.2)",
+    borderRadius: "20px",
+    padding: "40px",
+    textAlign: "left"
+  },
+  pipelineTitle: {
+    fontSize: "20px",
+    fontWeight: "600",
+    marginBottom: "32px",
+    textAlign: "center"
+  },
+  pipelineSteps: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "20px"
+  },
+  step: {
+    flex: "1",
+    minWidth: "160px",
+    textAlign: "center"
+  },
+  stepNum: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    background: "#6366f1",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 12px auto",
+    fontWeight: "700"
+  },
+  stepHeader: {
+    margin: "0 0 4px 0",
+    fontSize: "16px",
+    color: "#ffffff"
+  },
+  stepDesc: {
+    margin: 0,
+    fontSize: "13px",
+    color: "#9ca3af"
+  },
+  pipelineArrow: {
+    color: "#4b5563",
+    fontSize: "20px",
+    fontWeight: "700"
+  },
+  faqContainer: {
+    maxWidth: "760px",
+    margin: "0 auto",
+    textAlign: "left"
+  },
+  faqItem: {
+    background: "rgba(255,255,255,0.02)",
+    border: "1px solid rgba(255,255,255,0.05)",
+    borderRadius: "12px",
+    padding: "20px",
+    marginBottom: "12px",
+    cursor: "pointer"
+  },
+  faqHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  faqQuestion: {
+    fontWeight: "600",
+    fontSize: "16px"
+  },
+  faqToggle: {
+    color: "#9ca3af",
+    fontSize: "18px"
+  },
+  faqAnswer: {
+    marginTop: "12px",
+    fontSize: "14px",
+    color: "#9ca3af",
+    lineHeight: "1.5",
+    borderTop: "1px solid rgba(255,255,255,0.05)",
+    paddingTop: "12px"
+  },
+  footer: {
+    textAlign: "center",
+    paddingTop: "40px",
+    borderTop: "1px solid rgba(255,255,255,0.05)",
+    maxWidth: "1100px",
+    margin: "0 auto",
+    color: "#4b5563",
+    fontSize: "13px"
   }
 };
