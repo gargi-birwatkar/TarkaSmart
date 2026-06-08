@@ -22,6 +22,7 @@ from cryptography.fernet import Fernet
 load_dotenv()
 
 app = FastAPI()
+GUEST_ID = "TARKA_GUEST_MOCK_101"
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_SECRET_KEY")
 if not ENCRYPTION_KEY:
@@ -93,18 +94,18 @@ def get_gemini_embedding(text: str) -> list[float]:
             contents=text,
             config=types.EmbedContentConfig(output_dimensionality=768)
         )
-        print(response.embeddings[0].values)
+       #print(response.embeddings[0].values)
         return response.embeddings[0].values
     except Exception as e:
         print(f"❌ Gemini Embedding Extraction Failed: {e}")
         raise HTTPException(status_code=502, detail=f"Google GenAI Embedding service failure: {str(e)}")
 @app.get("/")
 def main():
-    return "hello guys"
+    return "TarkaSmart Cognitive Acceleration API Grid Online."
 
 @app.get("/api/auth/google/login")
 async def login():
-    print("entered login")
+    print("entered login endpoint")
     google_auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={GOOGLE_CLIENT_ID}&"
@@ -183,9 +184,10 @@ async def chat_handler(request: Chat):
             "match_count": 5,
             "filter_document_id": str(request.document_id).strip() 
         }).execute()
-        
+        print("query_embedding :", query_vector)
+        print("\nfilter_document_id: ", str(request.document_id).strip() )
         chunks = db_response.data
-        
+        print("\n\n",chunks)
         # ==========================================
         # STEP 3: PREPARE AND CLEAN CONTEXT
         # ==========================================
@@ -340,6 +342,11 @@ async def upload_logic(
     subject: str = Form(...),
     google_user_id: str = Form(...)
 ):
+    if google_user_id == GUEST_ID:
+        raise HTTPException(
+            status_code=403,
+            detail="Demonstration Sandbox Active: Document mutation arrays and cloud filesystem structures are read-only in guest mode."
+        )
     file_bytes = await file.read()
     vectorized_chunks = vectorize_pdf_stream(file_bytes, filename=file.filename)
     
@@ -368,7 +375,7 @@ async def upload_logic(
             client_secret=os.getenv("GOOGLE_CLIENT_SECRET")
         )
         drive_service = build('drive', 'v3', credentials=creds)
-        parent_os_id = get_or_create_drive_folder(drive_service, "StudentOS")
+        parent_os_id = get_or_create_drive_folder(drive_service, "TarkaSmart")
         subject_folder_id = get_or_create_drive_folder(drive_service, subject, parent_id=parent_os_id)
 
         file_stream = io.BytesIO(file_bytes)
@@ -379,7 +386,7 @@ async def upload_logic(
 
         media = MediaIoBaseUpload(file_stream, mimetype=file.content_type, resumable=True)
         
-        print(f"📡 Uploading '{file.filename}' straight into StudentOS/{subject}...")
+        print(f"📡 Uploading '{file.filename}' straight into TarkaSmart/{subject}...")
         uploaded_file = drive_service.files().create(
             body=file_metadata,
             media_body=media,
@@ -397,7 +404,7 @@ async def upload_logic(
                 "is_vectorized": "true"
             }
             
-            print("\nInserting document entry metadata:", user_payload)
+            print("\nInserting document entry metadata")
             doc_res = supabase.table("documents").insert(user_payload).execute()
             db_document_id = doc_res.data[0]['id']
             
