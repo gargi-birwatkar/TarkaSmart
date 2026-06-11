@@ -76,7 +76,6 @@ SCOPES = [
 
 class Chat(BaseModel):   
     message: str                  
-    document_id: str
     google_user_id: str           
     
 class FileUpload(BaseModel): 
@@ -177,17 +176,19 @@ async def chat_handler(request: Chat):
         # STEP 2: RETRIEVE CONTEXT FROM SUPABASE
         # ==========================================
         print("executing vector similarity search")
+     #   print("query_embedding :", query_vector)
+      #  print("\n\nuser_id_filter: ", request.google_user_id)
         
         db_response = supabase.rpc("match_document_chunks", {
             "query_embedding": query_vector,
             "match_threshold": 0.30,
             "match_count": 5,
-            "filter_document_id": str(request.document_id).strip() 
+            "user_id_filter": request.google_user_id
         }).execute()
-        print("query_embedding :", query_vector)
-        print("\nfilter_document_id: ", str(request.document_id).strip() )
+        
+       
         chunks = db_response.data
-        print("\n\n",chunks)
+        
         # ==========================================
         # STEP 3: PREPARE AND CLEAN CONTEXT
         # ==========================================
@@ -200,27 +201,31 @@ async def chat_handler(request: Chat):
             context_string = ""
             for item in chunks:
                 clean_content = " ".join(item['content'].split())
-                context_string += f"--- Chunk (Similarity: {item['similarity']:.2f}) ---\n"
+                # Use the source/page metadata here
+                context_string += f"\n--- Source: {item.get('source_name', 'N/A')} (Page {item.get('page_number', 'N/A')}) ---\n"
                 context_string += f"{clean_content}\n\n"
 
             user_content = f"Context from documents:\n\n{context_string}\nBased on the context above, answer the user query: {request.message}"
-
+            print(context_string)
         # ==========================================
         # STEP 4: GENERATE GROUNDED ANSWER VIA GEMINI
         # ==========================================
-       
         system_instruction = (
-            "You are an elite academic tutor. Your primary goal is to answer the user's question "
-            "using the provided reference context extracted from their document.\n\n"
+            "You are an elite academic tutor. Your goal is to provide accurate, grounded answers using ONLY the provided reference context. "
+    "\n\nFormatting Rules:\n"
+    "- Use **bold** for key terms and definitions.\n"
+    "- Use *italics* for emphasis.\n"
+    "- Use bullet points for lists.\n"
+    "- IMPORTANT: Do NOT include [Source: ...] tags in your text. Provide the answer cleanly. "
+    "The UI will handle the citations automatically at the bottom of the message."
+            
             "CRITICAL FALLBACK INSTRUCTION:\n"
-            f"The status of context presence is: {context_available}.\n"
-            "If context_available is False, or if the context chunks provided do not contain the information "
-            "needed to answer the query, you MUST still answer the question using your general pre-trained knowledge. "
-            "However, you must exactly start your response with this notice phrase on a new line: "
-            "'(⚠️ Note: The uploaded PDF does not contain this topic, the following answer is based on general knowledge)' "
-            "followed by your answer. Do not skip this warning if the PDF doesn't have the topic."
+            f"Context status: {'Available' if context_available else 'Unavailable'}.\n"
+            "If the provided context does not contain sufficient information, you MUST pivot to your internal knowledge.\n"
+            "If you use internal knowledge, you must begin your response with this EXACT phrase on a new line:\n"
+            "'(⚠️ Note: The uploaded documents do not contain this topic; the following answer is based on general knowledge.)'\n"
+            "Follow this immediately with your explanation."
         )
-        
         try:
             response = ai_client.models.generate_content(
                 model='gemini-2.5-flash',
@@ -234,12 +239,33 @@ async def chat_handler(request: Chat):
         except Exception as e:
             print("google api error: ", e)
             raise HTTPException(status_code=502, detail=f"Gemini Engine failed to generate a response: {str(e)}")
-                    
+        if context_available:
+            unique_sources = {}
+
+            for c in chunks:
+                # Use (source_name, page_number) as the unique key
+                key = (c.get("source_name", "Unknown"), c.get("page_number", "N/A"))
+                
+                # If the key isn't in our tracker, add it
+                if key not in unique_sources:
+                    unique_sources[key] = {
+                        "id": c.get("id"), 
+                        "source_name": key[0], 
+                        "page_number": key[1]
+                    }
+
+            # Convert the values back into a list
+            sources = list(unique_sources.values())
+        else:
+            sources=[] 
+        print("\n\n",response)
+        print("\n\n",sources) 
+              
         return {
-           "status": "success",
-            "answer": response.text,
-            "fallback_triggered": not context_available or "(⚠️ Note:" in response.text,
-            "sources": [{"id": c["id"], "content": c["content"]} for c in chunks] if chunks else []
+        "status": "success",
+        "answer": response.text,
+        "fallback_triggered": not context_available or "(⚠️ Note:" in response.text,
+       "sources":sources
         }
 
     except Exception as e:
@@ -281,61 +307,50 @@ def get_or_create_drive_folder(drive_service, folder_name: str, parent_id: str =
     return new_folder.get('id')
 
 def vectorize_pdf_stream(pdf_bytes: bytes, filename: str = "uploaded_file.pdf") -> list:
-    """
-    Processes a PDF from a raw byte stream completely in memory, slices it into 
-    overlapping chunks, and vectorizes it via Gemini Cloud API.
-    """
-    # ==========================================
-    # STEP 1: EXTRACT TEXT FROM IN-MEMORY BYTES
-    # ==========================================
-    print(f"📄 Extracting text from streaming file: {filename}...")
-    raw_text = ""
+    print(f"📄 Extracting text and page numbers from: {filename}...")
+    formatted_chunks_payload = []
+    
+    # 1. Check if the file is empty before processing
+    if not pdf_bytes or len(pdf_bytes) == 0:
+        print("❌ Error: Received empty file bytes.")
+        return []
+
     try:
         pdf_file = BytesIO(pdf_bytes)
         reader = PdfReader(pdf_file)
-        for page in reader.pages:
-            text = page.extract_text()
-            if text:
-                raw_text += text + "\n"
-    except Exception as e:
-        print(f"❌ Error parsing PDF bytes: {str(e)}")
-        return None
-
-    if not raw_text.strip():
-        print("❌ Error: Extracted text is empty. Verify that the PDF is machine-readable.")
-        return None
-
-    # ==========================================
-    # STEP 2: CHUNK THE TEXT STRATEGY
-    # ==========================================
-    print("✂️ Splitting text into semantically overlapping chunks...")
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=600,
-        chunk_overlap=120,
-        length_function=len
-    )
-    chunks = text_splitter.split_text(raw_text)
-    print(f"📝 Generated {len(chunks)} total text chunks.")
-
-    # ==========================================
-    # STEP 3: EMBED CHUNKS VIA GEMINI API
-    # ==========================================
-    print("📡 Requesting vector calculations from Gemini API Hub...")
-    formatted_chunks_payload = []
-    
-    for idx, chunk in enumerate(chunks):
-        # Apply structured prefix for optimal retrieval grounding
-        prefixed_chunk = f"search_document: {chunk}"
-        vector = get_gemini_embedding(prefixed_chunk)
         
-        formatted_chunks_payload.append({
-            "content": chunk,
-            "embedding": vector
-        })
+        # 2. Check if the PDF has pages
+        if len(reader.pages) == 0:
+            print("❌ Error: PDF contains no pages.")
+            return []
 
-    print("🎉 In-Memory Embedding Extraction Complete!")
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=120)
+
+        for i, page in enumerate(reader.pages):
+            text = page.extract_text()
+            if text and text.strip(): # Ensure text isn't just whitespace
+                chunks = text_splitter.split_text(text)
+                for chunk in chunks:
+                    prefixed_chunk = f"search_document: {chunk}"
+                    vector = get_gemini_embedding(prefixed_chunk)
+                    
+                    formatted_chunks_payload.append({
+                        "content": chunk,
+                        "embedding": vector,
+                        "source_name": filename,
+                        "pg_no": i + 1
+                    })
+        
+        # 3. Final safety check: if no text was extracted from any page
+        if not formatted_chunks_payload:
+            print("⚠️ Warning: No readable text found in PDF.")
+            return []
+
+    except Exception as e:
+        print(f"❌ Error parsing PDF: {str(e)}")
+        return None # Return None only on actual crashes
+        
     return formatted_chunks_payload
-
 @app.post("/api/upload")
 async def upload_logic(
     file: UploadFile = File(...),
@@ -348,10 +363,14 @@ async def upload_logic(
             detail="Demonstration Sandbox Active: Document mutation arrays and cloud filesystem structures are read-only in guest mode."
         )
     file_bytes = await file.read()
+    print(f"DEBUG: Received file '{file.filename}', size: {len(file_bytes)} bytes")
+    
+    if len(file_bytes) == 0:
+        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
     vectorized_chunks = vectorize_pdf_stream(file_bytes, filename=file.filename)
     
     if not vectorized_chunks:
-        return {"status": "error", "message": "Failed to process document context."}
+        raise HTTPException(status_code=400, detail="The uploaded PDF is empty or could not be read.")
 
     try:
         db_response = supabase.table("user_sessions")\
@@ -410,6 +429,7 @@ async def upload_logic(
             
             for chunk_data in vectorized_chunks:
                 chunk_data["document_id"] = db_document_id
+                
 
             supabase.table("document_chunks").insert(vectorized_chunks).execute()
 

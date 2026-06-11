@@ -508,7 +508,6 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: inputMessage,
-          document_id: String(selectedDoc?.id),
           google_user_id: userSession.google_user_id
         })
       });
@@ -521,17 +520,18 @@ export default function App() {
         {
           role: "assistant",
           text: data.answer,
-          source: data.source || null
+          sources: data.sources || null
         }
       ]);
+      console.log(data.sources)
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          text: "❌ Vector matching context retrieval interrupted. Check backend logs.",
-          source: null
+          text: "❌ This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+          sources: null
         }
       ]);
     } finally {
@@ -914,13 +914,37 @@ export default function App() {
                   </div>
                 )}
 
-                {msg.source && (
+                {/* 2. The Professional Citation Footer */}
+                {msg.sources && Array.isArray(msg.sources) && msg.sources.length > 0 && (
                   <div style={{
-                    ...styles.source,
-                    color: msg.role === "user" ? "#bfdbfe" : "#4f46e5",
-                    textAlign: "left"
+                    marginTop: "16px",
+                    padding: "12px",
+                    backgroundColor: "#f8fafc",
+                    borderLeft: "4px solid #4f46e5",
+                    borderRadius: "8px",
+                    fontSize: "0.85rem"
                   }}>
-                    🔍 Vector Reference: {msg.source}
+                    <div style={{ fontWeight: "800", color: "#4338ca", marginBottom: "10px", fontSize: "0.7rem", textTransform: "uppercase" }}>
+                      📖 Academic References
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {msg.sources.map((src, index) => (
+                        <span
+                          key={index}
+                          style={{
+                            backgroundColor: "#e0e7ff",
+                            color: "#3730a3",
+                            padding: "4px 10px",
+                            borderRadius: "6px",
+                            fontSize: "0.75rem",
+                            fontWeight: "600",
+                            border: "1px solid #c7d2fe"
+                          }}
+                        >
+                          {src.source_name} (Pg. {src.page_number})
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -933,7 +957,7 @@ export default function App() {
             <input
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder={selectedDoc ? `Ask about ${selectedDoc.name}...` : "Select a file to run vector matching..."}
+              placeholder={"Ask about anything..." }
               style={styles.chatInput}
               disabled={!selectedDoc}
             />
