@@ -915,7 +915,7 @@ export default function App() {
                 )}
 
                 {/* 2. The Professional Citation Footer */}
-                {msg.sources && Array.isArray(msg.sources) && msg.sources.length > 0 && (
+                {msg.sources && Array.isArray(msg.sources) && Array.isArray(msg.sources).length > 0 && (
                   <div style={{
                     marginTop: "16px",
                     padding: "12px",
