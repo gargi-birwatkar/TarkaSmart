@@ -1,5 +1,5 @@
 # 🎓 TarkaSmart: AI-Powered Academic Workspace
-
+**[View Live Simulation/Demo](https://tarkasmart.vercel.app/)**
 **TarkaSmart** is a high-performance academic workspace designed to streamline document management and study workflows. By combining an interactive document hub with an active RAG (Retrieval-Augmented Generation) pipeline, it allows students to index course materials directly from Google Drive and perform semantic searches to get accurate, context-aware answers from their own notes.
 
 ## 🛠️ Technical Stack
