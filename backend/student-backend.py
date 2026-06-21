@@ -1,6 +1,5 @@
 import io
 import os
-import time
 from io import BytesIO
 import requests
 from dotenv import load_dotenv
@@ -78,26 +77,22 @@ class Chat(BaseModel):
     message: str                  
     google_user_id: str           
     
-class FileUpload(BaseModel): 
-    file: UploadFile = File(...),
-    subject: str = Form(...),
-    google_user_id: str = Form(...)
-
-# Helper function to get embeddings using Gemini Cloud API
 # Helper function to get embeddings using Gemini Cloud API
 def get_gemini_embedding(text: str) -> list[float]:
     """Generates a 768-dimension text embedding using Gemini's cloud API instead of local models."""
     try:
         response = ai_client.models.embed_content(
-            model="gemini-embedding-2",  # 👈 FIXED: Added the mandatory 'models/' prefix path
+            model="gemini-embedding-2", 
             contents=text,
             config=types.EmbedContentConfig(output_dimensionality=768)
         )
        #print(response.embeddings[0].values)
         return response.embeddings[0].values
     except Exception as e:
-        print(f"❌ Gemini Embedding Extraction Failed: {e}")
+        print(f"Gemini Embedding Extraction Failed: {e}")
         raise HTTPException(status_code=502, detail=f"Google GenAI Embedding service failure: {str(e)}")
+    
+    
 @app.get("/")
 def main():
     return "TarkaSmart Cognitive Acceleration API Grid Online."
@@ -133,7 +128,10 @@ async def google_callback(code: str = None, error: str = None):
         "grant_type": "authorization_code"
     }
     
-    token_response = requests.post(token_url, data=token_data).json()
+    try:
+        token_response = requests.post(token_url, data=token_data).json()
+    except:
+        raise HTTPException(status_code=400, detail="Missing tokens code has expired or tampered.")
     access_token = token_response.get("access_token")
     refresh_token = token_response.get("refresh_token") 
     
@@ -201,25 +199,22 @@ async def chat_handler(request: Chat):
             context_string = ""
             for item in chunks:
                 clean_content = " ".join(item['content'].split())
-                # Use the source/page metadata here
-                context_string += f"\n--- Source: {item.get('source_name', 'N/A')} (Page {item.get('page_number', 'N/A')}) ---\n"
-                context_string += f"{clean_content}\n\n"
+                context_string += f"--- Source: {item.get('source_name', 'N/A')} (Page {item.get('page_number', 'N/A')}) ---"
+                context_string += f"{clean_content}"
 
-            user_content = f"Context from documents:\n\n{context_string}\nBased on the context above, answer the user query: {request.message}"
+            user_content = f"Context from documents:{context_string},Based on the context above, answer the user query: {request.message}"
             print(context_string)
         # ==========================================
         # STEP 4: GENERATE GROUNDED ANSWER VIA GEMINI
         # ==========================================
         system_instruction = (
             "You are an elite academic tutor. Your goal is to provide accurate, grounded answers using ONLY the provided reference context. "
-    "\n\nFormatting Rules:\n"
-    "- Use **bold** for key terms and definitions.\n"
-    "- Use *italics* for emphasis.\n"
-    "- Use bullet points for lists.\n"
-    "- IMPORTANT: Do NOT include [Source: ...] tags in your text. Provide the answer cleanly. "
-    "The UI will handle the citations automatically at the bottom of the message."
-            
-            "CRITICAL FALLBACK INSTRUCTION:\n"
+            "\n\nFormatting Rules:\n"
+            "- Use **bold** for key terms and definitions.\n"
+            "- Use *italics* for emphasis.\n"
+            "- Use bullet points for lists.\n"
+            "- IMPORTANT: Do NOT include [Source: ...] tags in your text. Provide the answer cleanly. "
+            "\nCRITICAL FALLBACK INSTRUCTION:\n"
             f"Context status: {'Available' if context_available else 'Unavailable'}.\n"
             "If the provided context does not contain sufficient information, you MUST pivot to your internal knowledge.\n"
             "If you use internal knowledge, you must begin your response with this EXACT phrase on a new line:\n"
@@ -243,7 +238,6 @@ async def chat_handler(request: Chat):
             unique_sources = {}
 
             for c in chunks:
-                # Use (source_name, page_number) as the unique key
                 key = (c.get("source_name", "Unknown"), c.get("page_number", "N/A"))
                 
                 # If the key isn't in our tracker, add it
@@ -309,12 +303,10 @@ def get_or_create_drive_folder(drive_service, folder_name: str, parent_id: str =
 def vectorize_pdf_stream(pdf_bytes: bytes, filename: str = "uploaded_file.pdf") -> list:
     print(f"📄 Extracting text and page numbers from: {filename}...")
     formatted_chunks_payload = []
-    
     # 1. Check if the file is empty before processing
     if not pdf_bytes or len(pdf_bytes) == 0:
         print("❌ Error: Received empty file bytes.")
         return []
-
     try:
         pdf_file = BytesIO(pdf_bytes)
         reader = PdfReader(pdf_file)
@@ -351,6 +343,8 @@ def vectorize_pdf_stream(pdf_bytes: bytes, filename: str = "uploaded_file.pdf") 
         return None # Return None only on actual crashes
         
     return formatted_chunks_payload
+
+
 @app.post("/api/upload")
 async def upload_logic(
     file: UploadFile = File(...),
@@ -448,6 +442,5 @@ async def upload_logic(
 
 if __name__ == "__main__":
     import uvicorn
-    # 🌟 FIXED FOR PRODUCTION: Expose to 0.0.0.0 so Railway can proxy traffic inside the cluster container
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("student-backend:app", host="0.0.0.0", port=port, reload=False)

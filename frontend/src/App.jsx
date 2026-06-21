@@ -297,7 +297,7 @@ export default function App() {
         if (!response.ok) throw new Error("Failed to pull active database index.");
 
         const rawData = await response.json();
-        console.log("📊 Raw DB Row Sample:", rawData[0]);
+        //console.log("Raw DB Row Sample:", rawData[0]);
 
         // 🔄 NORMALIZATION LAYER: Map your actual database columns to frontend keys
         const normalizedData = rawData.map((doc) => ({
@@ -336,7 +336,7 @@ export default function App() {
     {
       role: "assistant",
       text: "Hello! Select a category, upload a PDF, and ask me anything 📄",
-      source: null
+      sources: null
     }
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -915,7 +915,7 @@ export default function App() {
                 )}
 
                 {/* 2. The Professional Citation Footer */}
-                {msg.sources && Array.isArray(msg.sources) && Array.isArray(msg.sources).length > 0 && (
+                {msg.sources && Array.isArray(msg.sources) && msg.sources.length > 0 && (
                   <div style={{
                     marginTop: "16px",
                     padding: "12px",
@@ -1185,7 +1185,7 @@ const styles = {
     fontSize: "14px",
     lineHeight: "1.4"
   },
-  source: {
+  sources: {
     fontSize: "11px",
     marginTop: "6px",
     fontWeight: "500"
