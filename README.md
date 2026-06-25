@@ -90,11 +90,10 @@ npm install
 
 npm install
 
-```
-2. **Development Start**:
-   ```bash
-   npm run dev
 
+2. **Development Start**:
+```bash
+   npm run dev
 ```
 
 ## 📈 Future Scalability
