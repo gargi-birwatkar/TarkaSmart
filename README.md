@@ -83,7 +83,7 @@ uvicorn main:app --reload
 
 1. **Dependency Installation**:
 ```bash
-
+npm install
 ```
 
 
