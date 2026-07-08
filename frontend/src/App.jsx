@@ -243,7 +243,7 @@ export default function App() {
   const [subjectList, setSubjectList] = useState(["Computer Science", "Mathematics", "Physics", "General Study"]);
   const [isAddingNewSubject, setIsAddingNewSubject] = useState(false);
   const [newSubjectInput, setNewSubjectInput] = useState("");
- 
+  
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("login") === "success") {
@@ -283,10 +283,10 @@ export default function App() {
   // ---------------- DOCUMENT STATE ----------------
   const [documents, setDocuments] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null);
-
+  
   // 📡 FETCH REAL-TIME SYNCD FILES FROM FASTAPI/SUPABASE BACKEND
   React.useEffect(() => {
-   
+    
     if (!userSession) {
       // PASS THE CALLBACK TO SET THE SESSION
       return <Login onLoginSuccess={(sessionData) => setUserSession(sessionData)} />;
@@ -341,7 +341,10 @@ export default function App() {
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
-
+  const chatEndRef = useRef(null);
+  React.useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
   // ---------------- UI & INTERACTION STATE ----------------
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -351,7 +354,10 @@ export default function App() {
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [chatWidth, setChatWidth] = useState(350);
   const [tasksHeight, setTasksHeight] = useState(200);
-
+ 
+  
+  // 2. Add this effect to track changes
+  
   // 🛠️ LEFT SIDEBAR RESIZER HANDLERS
   const startLeftResize = (e) => {
     e.preventDefault();
@@ -493,6 +499,7 @@ export default function App() {
   };
 
   // ---------------- CHAT HANDLER ----------------
+  
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
@@ -501,7 +508,7 @@ export default function App() {
     setMessages((prev) => [...prev, userMsg]);
     setInputMessage("");
     setIsAiLoading(true);
-
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
@@ -513,32 +520,57 @@ export default function App() {
       });
 
       if (!response.ok) throw new Error("Server response error");
-      const data = await response.json();
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: data.answer,
-          sources: data.sources || null
+      // Initialize the assistant message with empty text
+      setMessages((prev) => [...prev, { role: "assistant", text: "", sources: null }]);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+      let metadataReceived = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        // Check for our metadata marker
+        if (chunk.includes("[METADATA_START]")) {
+          const parts = chunk.split("[METADATA_START]");
+          accumulatedText += parts[0];
+
+          // Extract and parse metadata
+          const metaPart = parts[1].split("[METADATA_END]")[0];
+          const meta = JSON.parse(metaPart);
+
+          setMessages((prev) => {
+            const newMsgs = [...prev];
+            const lastIdx = newMsgs.length - 1;
+            newMsgs[lastIdx] = { ...newMsgs[lastIdx], text: accumulatedText, sources: meta.sources };
+            return newMsgs;
+          });
+          metadataReceived = true;
+        } else {
+          accumulatedText += chunk;
+          setMessages((prev) => {
+            const newMsgs = [...prev];
+            const lastIdx = newMsgs.length - 1;
+            newMsgs[lastIdx] = { ...newMsgs[lastIdx], text: accumulatedText };
+            return newMsgs;
+          });
         }
-      ]);
-      console.log(data.sources)
+      }
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          text: "❌ This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
-          sources: null
-        }
+        { role: "assistant", text: "❌ Connection error.", sources: null }
       ]);
     } finally {
       setIsAiLoading(false);
     }
   };
-
   const formatAiResponse = (text) => {
     if (!text) return "";
 
@@ -949,6 +981,7 @@ export default function App() {
                 )}
               </div>
             ))}
+            <div ref={chatEndRef} />
 
             {isAiLoading && <div style={styles.loadingBubble}>Querying Database Vectors...</div>}
           </div>

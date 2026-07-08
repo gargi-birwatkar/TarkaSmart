@@ -29,6 +29,7 @@ pip-delete-this-directory.txt
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.cache
 
 # ==========================================
 # 3. ENVIRONMENT SECRETS & KEYS (Crucial)

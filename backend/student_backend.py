@@ -1,5 +1,6 @@
 import io
 import os
+import time
 from io import BytesIO
 import requests
 from dotenv import load_dotenv
@@ -14,11 +15,15 @@ from googleapiclient.http import MediaIoBaseUpload
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel
 from pypdf import PdfReader
-
 from supabase import Client, create_client
 from cryptography.fernet import Fernet
+from pathlib import Path
+from fastapi.responses import StreamingResponse
+import asyncio
+import json 
 
-load_dotenv()
+dotenv_path = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(dotenv_path=dotenv_path)
 
 app = FastAPI()
 GUEST_ID = "TARKA_GUEST_MOCK_101"
@@ -81,10 +86,16 @@ class Chat(BaseModel):
 def get_gemini_embedding(text: str) -> list[float]:
     """Generates a 768-dimension text embedding using Gemini's cloud API instead of local models."""
     try:
+        retry_config = types.HttpRetryOptions(
+            initial_delay=1.0,
+            attempts=5, # Retries up to 5 times
+            http_status_codes=[408, 429, 500, 502, 503, 504]
+        )
         response = ai_client.models.embed_content(
             model="gemini-embedding-2", 
             contents=text,
-            config=types.EmbedContentConfig(output_dimensionality=768)
+            config=types.EmbedContentConfig(output_dimensionality=768, http_options=types.HttpOptions(retry_options=retry_config))
+           
         )
        #print(response.embeddings[0].values)
         return response.embeddings[0].values
@@ -161,36 +172,80 @@ async def google_callback(code: str = None, error: str = None):
 
     frontend_dashboard_url = f"{FRONTEND_URL}?login=success&email={email}&name={name}&google_user_id={google_user_id}"
     return RedirectResponse(url=frontend_dashboard_url)
-
+async def stream_with_retry(user_content, system_instruction, max_retries=3):
+    """A generator that retries the API call if it fails during initialization."""
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            # Initiate the streaming request
+            response = ai_client.models.generate_content_stream(
+                model='gemini-2.5-flash',
+                contents=user_content,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.3
+                )
+            )
+            
+            # Yield from the response iterator
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+            
+            # If we finish successfully, break the loop
+            break
+            
+        except Exception as e:
+            attempt += 1
+            print(f"Streaming attempt {attempt} failed: {e}")
+            if attempt >= max_retries:
+                yield f"\n\n[ERROR] Generation failed after {max_retries} attempts."
+                break
+            await asyncio.sleep(2) # Backoff before retrying
+            
+            
 @app.post("/api/chat")
 async def chat_handler(request: Chat):
     try:
         # ==========================================
         # STEP 1: VECTORIZE USER QUERY VIA GEMINI
         # ==========================================
+        start_time = time.time()
         query_vector = get_gemini_embedding(request.message)
 
         # ==========================================
         # STEP 2: RETRIEVE CONTEXT FROM SUPABASE
         # ==========================================
         print("executing vector similarity search")
-     #   print("query_embedding :", query_vector)
-      #  print("\n\nuser_id_filter: ", request.google_user_id)
+        print("query_embedding :", query_vector)
+        print("\n\nuser_id_filter: ", request.google_user_id)
         
-        db_response = supabase.rpc("match_document_chunks", {
+        '''db_response = supabase.rpc("match_document_chunks", {
             "query_embedding": query_vector,
             "match_threshold": 0.30,
             "match_count": 5,
             "user_id_filter": request.google_user_id
-        }).execute()
+        }).execute()'''
+        
+        # Assuming you have the supabase client initialized
+        db_response = supabase.rpc(
+            "match_document_chunks",
+            {
+                "query_embedding": query_vector,
+                "query_text": request.message,
+                "match_threshold": 0.30,
+                "match_count": 5,
+                "user_id_filter":request.google_user_id
+            }
+        ).execute()
         
        
         chunks = db_response.data
-        
+        retrival_time= time.time()-start_time
         # ==========================================
         # STEP 3: PREPARE AND CLEAN CONTEXT
         # ==========================================
-        context_available = True
+        context_available = bool(chunks)
         if not chunks:
             context_available = False
             context_string = "No matching background reference text found in the document."
@@ -221,50 +276,40 @@ async def chat_handler(request: Chat):
             "'(⚠️ Note: The uploaded documents do not contain this topic; the following answer is based on general knowledge.)'\n"
             "Follow this immediately with your explanation."
         )
-        try:
-            response = ai_client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=user_content,  
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.3,
-                )
-            )
-       
-        except Exception as e:
-            print("google api error: ", e)
-            raise HTTPException(status_code=502, detail=f"Gemini Engine failed to generate a response: {str(e)}")
-        if context_available:
-            unique_sources = {}
+        unique_sources = {}
+        for c in chunks:
+            key = (c.get("source_name", "Unknown"), c.get("page_number", "N/A"))
+            if key not in unique_sources:
+                unique_sources[key] = {"source_name": key[0], "page_number": key[1]}
+        sources = list(unique_sources.values())
 
-            for c in chunks:
-                key = (c.get("source_name", "Unknown"), c.get("page_number", "N/A"))
+        # STEP 3: The Generator (The ONLY place where the LLM is called)
+        async def final_stream_generator():
+            full_answer = ""
+            
+            # Call the retry-wrapped generator
+            async for chunk_text in stream_with_retry(user_content, system_instruction):
+                full_answer += chunk_text
+                yield chunk_text
                 
-                # If the key isn't in our tracker, add it
-                if key not in unique_sources:
-                    unique_sources[key] = {
-                        "id": c.get("id"), 
-                        "source_name": key[0], 
-                        "page_number": key[1]
-                    }
-
-            # Convert the values back into a list
-            sources = list(unique_sources.values())
-        else:
-            sources=[] 
-        print("\n\n",response)
-        print("\n\n",sources) 
-              
-        return {
-        "status": "success",
-        "answer": response.text,
-        "fallback_triggered": not context_available or "(⚠️ Note:" in response.text,
-       "sources":sources
-        }
-
+            # Send metadata once finished
+            metadata = {
+                "type": "metadata",
+                "sources": sources,
+                "fallback_triggered": not context_available or "(⚠️ Note:" in full_answer
+            }
+            yield f"\n\n[METADATA_START]{json.dumps(metadata)}[METADATA_END]"
+        return StreamingResponse(final_stream_generator(),media_type="text/event-stream",
+    headers={
+        "X-Accel-Buffering": "no",
+        "Cache-Control": "no-cache",
+    })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Cloud RAG Generation failed: {str(e)}")
+        print(f"❌ Error genrating chat: {str(e)}")
+    
+     
 
+    
 @app.get("/api/documents")
 async def get_documents(google_user_id: str):
     response = supabase.table("documents").select("*").eq("google_user_id", google_user_id).execute()
@@ -324,7 +369,11 @@ def vectorize_pdf_stream(pdf_bytes: bytes, filename: str = "uploaded_file.pdf") 
                 chunks = text_splitter.split_text(text)
                 for chunk in chunks:
                     prefixed_chunk = f"search_document: {chunk}"
+                    start=time.time()
                     vector = get_gemini_embedding(prefixed_chunk)
+                   
+                    end=time.time()-start
+                    print("\nembedding page ",i,"in time ",end)
                     
                     formatted_chunks_payload.append({
                         "content": chunk,
@@ -361,7 +410,11 @@ async def upload_logic(
     
     if len(file_bytes) == 0:
         raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+    start=time.time()
     vectorized_chunks = vectorize_pdf_stream(file_bytes, filename=file.filename)
+    end=time.time()-start
+    print("\n\n vectorization of the file ",end)
+    
     
     if not vectorized_chunks:
         raise HTTPException(status_code=400, detail="The uploaded PDF is empty or could not be read.")
@@ -443,4 +496,4 @@ async def upload_logic(
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("student-backend:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run("student_backend:app", host="0.0.0.0", port=port, reload=True)
