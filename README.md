@@ -62,7 +62,7 @@ flowchart TD
     J -->|Vector: cosine similarity| H
     J -->|Keyword: indexed full-text| H
     J --> K[Top-5 Ranked Chunks + Citations]
-    K --> L[Gemini 1.5 Flash - LangChain]
+    K --> L[Gemini 2.5 Flash]
     L -->|No match found| M[Fallback: general answer + warning flag]
     L -->|Streamed tokens| N[React Frontend - Chat UI]
 ```
