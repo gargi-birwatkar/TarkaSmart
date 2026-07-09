@@ -38,7 +38,7 @@ Built with a **privacy-by-design** philosophy: TarkaSmart never has blanket acce
 | 📎 **Cited, Grounded Answers** | Every answer returns the top-5 relevant chunks with source file name + page number — no black-box answers. |
 | ⚡ **Real-Time Streaming** | Token-level response streaming to cut perceived latency on long answers. |
 | 🛡️ **Graceful Fallback** | If no relevant chunks are found, the system falls back to general model reasoning *and explicitly flags* that the answer isn't grounded in user data — no silent hallucination. |
-| 📊 **Evaluated, Not Assumed** | Faithfulness and answer relevancy are measured with the **RAGAS** framework, not eyeballed — scoring **0.98 faithfulness** and **perfect (1.00) context precision/recall**. See [full results](./TECHNICAL_DOCUMENTATION.md#8-rag-evaluation). |
+| 📊 **Evaluated, Not Assumed** | Faithfulness and answer relevancy are measured with the **RAGAS** framework, not eyeballed — scoring **0.98 faithfulness** and **perfect (1.00) context precision/recall**. |
 | 🧱 **Encrypted Credential Handling** | All tokens and session data encrypted at rest using `cryptography.fernet` symmetric encryption. |
 | 🖥️ **Dynamic Workspace UI** | Custom drag-resizable canvas layout — toggle between PDF viewer, Drive folder browser, and AI chat panel in one workspace. |
 | ✅ **Built-in Task Engine** | Reactive, state-managed study task tracker embedded directly alongside the research material it relates to. |
