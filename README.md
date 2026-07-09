@@ -12,7 +12,7 @@
 [![Gemini](https://img.shields.io/badge/LLM-Gemini%201.5%20Flash-4285F4?logo=googlegemini&logoColor=white&style=flat-square)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](#-license)
 
-**[🔗 Live Demo](https://student-os-iota-ebon.vercel.app)** · **[📖 Technical Deep-Dive](./TECHNICAL_DOCUMENTATION.md)** · **[🐛 Report Bug](#)**
+**[🔗 Live Demo](https://tarkasmart.vercel.app)** · **[📖 Technical Deep-Dive](./technical_documentation.md)** ·
 
 </div>
 
@@ -193,26 +193,18 @@ ENCRYPTION_SECRET_KEY=your_generated_fernet_key
 
 Run the backend:
 ```bash
-<<<<<<< HEAD
-npm install
-=======
 uvicorn main:app --reload
->>>>>>> 9b58337 (feat: add RAGAS evaluation pipeline, technical docs, and updated requirements, README, and  implemented hybrid search retrival)
 ```
 
 ### 4. Frontend setup
 ```bash
 cd frontend
 npm install
-<<<<<<< HEAD
-
+```
 
 2. **Development Start**:
 ```bash
    npm run dev
-=======
-npm run dev
->>>>>>> 9b58337 (feat: add RAGAS evaluation pipeline, technical docs, and updated requirements, README, and  implemented hybrid search retrival)
 ```
 
 ---
@@ -227,14 +219,9 @@ npm run dev
 ---
 
 ## 🎥 Demo & Documentation
-
-<<<<<<< HEAD
-* **Multi-Model Support**: Decoupling the AI service layer to allow users to toggle between different reasoning engines.
-=======
-- 🔗 **Live Demo:** [student-os-iota-ebon.vercel.app](https://student-os-iota-ebon.vercel.app)
-- 📖 **Engineering Deep-Dive:** [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) — build decisions, trade-offs, and how real production issues (rate limits, model swaps, evaluation bottlenecks) were solved
+- 🔗 **Live Demo:** [TARKA SMART ](https://tarkasmart.vercel.app)
+- 📖 **Engineering Deep-Dive:** [TECHNICAL_DOCUMENTATION.md](./technical_documentation.md) — build decisions, trade-offs, and how real production issues (rate limits, model swaps, evaluation bottlenecks) were solved
 - 🎬 **Demo Video:** *[Insert Link Here]*
-
 ---
 
 ## 👩‍💻 Author
@@ -247,4 +234,3 @@ Built solo — architecture, backend, frontend, evaluation, and deployment.
 ## 📄 License
 
 Distributed under the MIT License.
->>>>>>> 9b58337 (feat: add RAGAS evaluation pipeline, technical docs, and updated requirements, README, and  implemented hybrid search retrival)
