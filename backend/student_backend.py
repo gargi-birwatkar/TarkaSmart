@@ -51,6 +51,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -285,8 +286,9 @@ async def chat_handler(request: Chat):
 
         # STEP 3: The Generator (The ONLY place where the LLM is called)
         async def final_stream_generator():
-            full_answer = ""
             
+            full_answer = ""
+            yield " "
             # Call the retry-wrapped generator
             async for chunk_text in stream_with_retry(user_content, system_instruction):
                 full_answer += chunk_text
@@ -303,6 +305,7 @@ async def chat_handler(request: Chat):
     headers={
         "X-Accel-Buffering": "no",
         "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
     })
     except Exception as e:
         print(f"❌ Error genrating chat: {str(e)}")

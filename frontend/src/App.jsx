@@ -534,7 +534,7 @@ export default function App() {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-
+        console.log("Received chunk:", chunk)
         // Check for our metadata marker
         if (chunk.includes("[METADATA_START]")) {
           const parts = chunk.split("[METADATA_START]");
