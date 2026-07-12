@@ -526,42 +526,50 @@ export default function App() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let accumulatedText = "";
-      let metadataReceived = false;
-
+      let fullBuffer = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        console.log("Received chunk:", chunk)
-        // Check for our metadata marker
-        if (chunk.includes("[METADATA_START]")) {
-          const parts = chunk.split("[METADATA_START]");
-          accumulatedText += parts[0];
+        fullBuffer += chunk;
 
-          // Extract and parse metadata
-          const metaPart = parts[1].split("[METADATA_END]")[0];
-          const meta = JSON.parse(metaPart);
+        // Check if we have hit the metadata marker
+        if (fullBuffer.includes("[METADATA_START]")) {
+          const [textPart, metaPartWithEnd] = fullBuffer.split("[METADATA_START]");
 
-          setMessages((prev) => {
-            const newMsgs = [...prev];
-            const lastIdx = newMsgs.length - 1;
-            newMsgs[lastIdx] = { ...newMsgs[lastIdx], text: accumulatedText, sources: meta.sources };
-            return newMsgs;
-          });
-          metadataReceived = true;
+          // Only parse if we have the full [METADATA_END] tag
+          if (metaPartWithEnd.includes("[METADATA_END]")) {
+            const metaPart = metaPartWithEnd.split("[METADATA_END]")[0];
+            const meta = JSON.parse(metaPart);
+
+            setMessages((prev) => {
+              const newMsgs = [...prev];
+              const lastIdx = newMsgs.length - 1;
+              newMsgs[lastIdx] = { ...newMsgs[lastIdx], text: textPart, sources: meta.sources };
+              return newMsgs;
+            });
+            break; // Stream finished
+          } else {
+            // Metadata tag started, but not complete yet. 
+            // Update UI with just the text part so far.
+            setMessages((prev) => {
+              const newMsgs = [...prev];
+              newMsgs[newMsgs.length - 1].text = textPart;
+              return newMsgs;
+            });
+          }
         } else {
-          accumulatedText += chunk;
+          // Standard streaming update
           setMessages((prev) => {
             const newMsgs = [...prev];
-            const lastIdx = newMsgs.length - 1;
-            newMsgs[lastIdx] = { ...newMsgs[lastIdx], text: accumulatedText };
+            newMsgs[newMsgs.length - 1].text = fullBuffer;
             return newMsgs;
           });
         }
       }
-    } catch (err) {
+    }
+      catch (err) {
       console.error(err);
       setMessages((prev) => [
         ...prev,
