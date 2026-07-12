@@ -178,8 +178,9 @@ async def stream_with_retry(user_content, system_instruction, max_retries=3):
     attempt = 0
     while attempt < max_retries:
         try:
-            # Initiate the streaming request
-            response = ai_client.models.generate_content_stream(
+            # Initiate the streaming request using the ASYNC client so this
+            # does not block the FastAPI event loop while waiting on network I/O.
+            response = await ai_client.aio.models.generate_content_stream(
                 model='gemini-2.5-flash',
                 contents=user_content,
                 config=types.GenerateContentConfig(
@@ -187,9 +188,10 @@ async def stream_with_retry(user_content, system_instruction, max_retries=3):
                     temperature=0.3
                 )
             )
-            
-            # Yield from the response iterator
-            for chunk in response:
+
+            # Yield from the response iterator (async iteration lets each
+            # chunk get flushed to the client as soon as it arrives)
+            async for chunk in response:
                 if chunk.text:
                     yield chunk.text
             
