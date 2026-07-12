@@ -1,38 +1,33 @@
-# Web & API
+# --- Web & API ---
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 python-multipart>=0.0.9
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
 
-# Cloud & DB
+# --- Database & Cloud ---
 supabase>=2.4.0
+google-api-python-client>=2.122.0
+google-auth>=2.28.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
 
-# Gemini AI SDK & Vectorization
+# --- AI, LLM & Vectorization ---
 google-genai>=0.1.1
-sentence-transformers>=2.5.0
-langchain-text-splitters>=0.0.1
-einops>=0.7.0
 langchain-google-genai>=1.0.0
+langchain-text-splitters>=0.0.1
+sentence-transformers>=2.5.0
+einops>=0.7.0
 
-# Evaluation Framework (RAGAS)
+# --- RAG Evaluation ---
 ragas>=0.1.0
 datasets>=2.18.0
 
-# Document Processing
+# --- Document & Data Processing ---
 pypdf>=4.1.0
-
-# Google Drive API Integration
-google-auth>=2.28.0
-google-auth-oauthlib>=1.2.0
 requests>=2.31.0
 
-# AI & Processing (Memory Intensive)
-# Try to keep these updated to their most efficient versions
-google-genai>=0.1.1
-pypdf>=4.1.0
-langchain-text-splitters>=0.0.1
-
-# Security & Config
+# --- Security, Utils & Reliability ---
 cryptography>=42.0.0
 python-dotenv>=1.0.1
-pydantic>=2.6.0
-pydantic-settings>=2.2.0
+tenacity>=8.2.0
