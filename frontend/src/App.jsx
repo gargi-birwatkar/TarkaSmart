@@ -527,6 +527,7 @@ export default function App() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullBuffer = "";
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -534,36 +535,47 @@ export default function App() {
         const chunk = decoder.decode(value, { stream: true });
         fullBuffer += chunk;
 
-        // Check if we have hit the metadata marker
+        // 1. Check if the metadata tag has started
         if (fullBuffer.includes("[METADATA_START]")) {
-          const [textPart, metaPartWithEnd] = fullBuffer.split("[METADATA_START]");
+          const parts = fullBuffer.split("[METADATA_START]");
+          const textOnly = parts[0];
+          const metaWithEnd = parts[1];
 
-          // Only parse if we have the full [METADATA_END] tag
-          if (metaPartWithEnd.includes("[METADATA_END]")) {
-            const metaPart = metaPartWithEnd.split("[METADATA_END]")[0];
+          // Update the UI with the streaming text (excluding the metadata part)
+          setMessages((prev) => {
+            const newMsgs = [...prev];
+            newMsgs[newMsgs.length - 1] = {
+              ...newMsgs[newMsgs.length - 1],
+              text: textOnly
+            };
+            return newMsgs;
+          });
+
+          // 2. If the end tag is also present, we have the full metadata
+          if (metaWithEnd.includes("[METADATA_END]")) {
+            const metaPart = metaWithEnd.split("[METADATA_END]")[0];
             const meta = JSON.parse(metaPart);
 
             setMessages((prev) => {
               const newMsgs = [...prev];
               const lastIdx = newMsgs.length - 1;
-              newMsgs[lastIdx] = { ...newMsgs[lastIdx], text: textPart, sources: meta.sources };
+              newMsgs[lastIdx] = {
+                ...newMsgs[lastIdx],
+                text: textOnly,
+                sources: meta.sources
+              };
               return newMsgs;
             });
-            break; // Stream finished
-          } else {
-            // Metadata tag started, but not complete yet. 
-            // Update UI with just the text part so far.
-            setMessages((prev) => {
-              const newMsgs = [...prev];
-              newMsgs[newMsgs.length - 1].text = textPart;
-              return newMsgs;
-            });
+            break; // Exit the loop: streaming complete
           }
         } else {
-          // Standard streaming update
+          // 3. Normal streaming mode: No metadata tag found yet
           setMessages((prev) => {
             const newMsgs = [...prev];
-            newMsgs[newMsgs.length - 1].text = fullBuffer;
+            newMsgs[newMsgs.length - 1] = {
+              ...newMsgs[newMsgs.length - 1],
+              text: fullBuffer
+            };
             return newMsgs;
           });
         }
