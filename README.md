@@ -142,6 +142,7 @@ student-os/
 ├── eval/
 │   ├── dataset_generator.py  
 │   ├── eval_dataset.json    # output of dataset_generator.py 
+│   ├── requirements.txt   #requirements for dataset_generator.py
 │   └── RAGEvaluation.ipynb
 ├── README.md
 └──  technical_documentation.md
