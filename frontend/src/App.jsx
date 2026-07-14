@@ -10,6 +10,19 @@ if (typeof document !== "undefined") {
       height: 100% !important;
       overflow: hidden !important;
     }
+
+    /*
+      Force light color-scheme app-wide.
+      Without this, when a user's OS is set to dark mode, browsers
+      auto-invert the text color of native <select>/<input> elements
+      that don't set an explicit "color" (e.g. the course dropdown),
+      while our hardcoded white backgrounds stay white — producing
+      invisible white-on-white text. This keeps all form controls
+      rendering in light mode regardless of OS theme.
+    */
+    html {
+      color-scheme: light;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -45,34 +58,34 @@ function Login({ onLoginSuccess }) {
   const features = [
     {
       icon: "📁",
-      title: "Granular Cloud Storage Isolation",
-      desc: "Integrates with Google Drive using strict, limited OAuth2 scopes to securely isolate, catalogue, and read course documents without compromising tenant data boundaries."
+      title: "Safe Google Drive Access",
+      desc: "Connects to your Google Drive with limited, read-only permissions — TarkaSmart can only see the specific course files you choose to upload, nothing else."
     },
     {
       icon: "🧬",
-      title: "Deterministic Semantic Ingestion",
-      desc: "Extracts text layers from complex documents, applying optimized text-chunking strategies and sliding-window overlaps to preserve deep structural hierarchy."
+      title: "Smart Document Reading",
+      desc: "Reads through your PDFs and notes, breaking them into organized pieces so nothing important gets lost, even in long or complex documents."
     },
     {
       icon: "⚡",
-      title: "Distributed Vector Embeddings",
-      desc: "Transforms raw text tokens into high-dimensional vector representations, indexing them in real-time into a Postgres database with pgvector extensions."
+      title: "Instant Search-Ready Notes",
+      desc: "Every document you upload is indexed right away, so you can start asking questions about it within seconds."
     },
     {
       icon: "🧠",
-      title: "Context-Isolated Retrieval (RAG)",
-      desc: "Executes cosine similarity searches matching your real-time queries against indexed document chunks, filtering out external model hallucinations entirely."
+      title: "Answers From Your Own Material",
+      desc: "When you ask a question, TarkaSmart looks through your uploaded documents first and answers based on what's actually in them — not guesses."
     }
   ];
 
   const faqs = [
     {
-      q: "How does tarkaSmart secure my data during vector indexing?",
-      a: "Our backend architecture enforces strict cryptographic isolation. By requesting delegation through the limited `drive.file` OAuth scope, the application can only query files it explicitly stages, guaranteeing full data privacy."
+      q: "Is my data safe when I connect Google Drive?",
+      a: "Yes. TarkaSmart only requests access to the specific files you upload through the app — it can't browse or read anything else in your Drive."
     },
     {
-      q: "What prevents the LLM from hallucinating answers outside my syllabus?",
-      a: "We utilize a deterministic Retrieval-Augmented Generation (RAG) framework. User queries are embedded dynamically to pull context from your uploaded document. The LLM is bounded by runtime system prompts that restrict synthesis strictly to the retrieved vector chunks."
+      q: "Will the AI make up answers that aren't in my notes?",
+      a: "TarkaSmart is designed to answer using your uploaded documents first. It searches your files for the most relevant sections before generating a response, and it'll let you know when a question falls outside what you've uploaded."
     }
   ];
 
@@ -97,12 +110,12 @@ function Login({ onLoginSuccess }) {
       {/* HERO SECTION */}
       <section style={landingStyles.heroSection}>
         <div style={landingStyles.heroCard}>
-          <div style={landingStyles.badge}>v1.0 Production Architecture</div>
+          <div style={landingStyles.badge}>Built for students</div>
           <h1 style={landingStyles.heroTitle}>
-            Your entire semester syllabus, <span style={landingStyles.gradientText}>vectorized.</span>
+            Your entire syllabus, <span style={landingStyles.gradientText}>organized and searchable.</span>
           </h1>
           <p style={landingStyles.heroSubtitle}>
-            A high-performance cognitive ingestion engine that parses academic documentation into isolated vector spaces, orchestrating deterministic context-matching for zero-hallucination document intelligence.
+            Upload your course notes and PDFs, then ask questions in plain language. TarkaSmart finds the answer in your own material, so you spend less time hunting through documents.
           </p>
 
           
@@ -154,8 +167,8 @@ function Login({ onLoginSuccess }) {
 
       {/* FEATURES SECTIONS */}
       <section style={landingStyles.section}>
-        <h2 style={landingStyles.sectionTitle}>High-Retention Infrastructure Stack</h2>
-        <p style={landingStyles.sectionSubtitle}>Ditch flat directories. Leverage a modern computational pipeline built for immediate contextual discovery.</p>
+        <h2 style={landingStyles.sectionTitle}>How TarkaSmart Helps You Study</h2>
+        <p style={landingStyles.sectionSubtitle}>No more scrolling through folders looking for the right page. Upload once, then ask.</p>
 
         <div style={landingStyles.featureGrid}>
           {features.map((f, idx) => (
@@ -171,30 +184,30 @@ function Login({ onLoginSuccess }) {
       {/* PIPELINE BREAKDOWN VISUAL */}
       <section style={landingStyles.section}>
         <div style={landingStyles.pipelineCard}>
-          <h3 style={landingStyles.pipelineTitle}>The Storage-to-Recall Pipeline</h3>
+          <h3 style={landingStyles.pipelineTitle}>From Upload to Answer</h3>
           <div style={landingStyles.pipelineSteps}>
             <div style={landingStyles.step}>
               <div style={landingStyles.stepNum}>1</div>
-              <h4 style={landingStyles.stepHeader}>Drive Ingestion</h4>
-              <p style={landingStyles.stepDesc}>Secure Multipart API Upload & cloud staging</p>
+              <h4 style={landingStyles.stepHeader}>Upload Your Notes</h4>
+              <p style={landingStyles.stepDesc}>Drop in a PDF from any course</p>
             </div>
             <div style={landingStyles.pipelineArrow}>➔</div>
             <div style={landingStyles.step}>
               <div style={landingStyles.stepNum}>2</div>
-              <h4 style={landingStyles.stepHeader}>Tokenization & Chunking</h4>
-              <p style={landingStyles.stepDesc}>Recursive text splitting and meta-tag partitioning</p>
+              <h4 style={landingStyles.stepHeader}>We Read It For You</h4>
+              <p style={landingStyles.stepDesc}>The document gets scanned and organized</p>
             </div>
             <div style={landingStyles.pipelineArrow}>➔</div>
             <div style={landingStyles.step}>
               <div style={landingStyles.stepNum}>3</div>
-              <h4 style={landingStyles.stepHeader}>Vector Indexing</h4>
-              <p style={landingStyles.stepDesc}>Embedding extraction into Postgres pgvector store</p>
+              <h4 style={landingStyles.stepHeader}>It Becomes Searchable</h4>
+              <p style={landingStyles.stepDesc}>Ready to answer questions in seconds</p>
             </div>
             <div style={landingStyles.pipelineArrow}>➔</div>
             <div style={landingStyles.step}>
               <div style={landingStyles.stepNum}>4</div>
-              <h4 style={landingStyles.stepHeader}>Semantic Synthesis</h4>
-              <p style={landingStyles.stepDesc}>Isolated context-matching via LLM reasoning</p>
+              <h4 style={landingStyles.stepHeader}>Ask and Get Answers</h4>
+              <p style={landingStyles.stepDesc}>Chat with your notes like a study partner</p>
             </div>
           </div>
         </div>
@@ -202,7 +215,7 @@ function Login({ onLoginSuccess }) {
 
       {/* FAQ SECTION */}
       <section style={landingStyles.section}>
-        <h2 style={landingStyles.sectionTitle}>Architectural FAQ</h2>
+        <h2 style={landingStyles.sectionTitle}>Common Questions</h2>
         <div style={landingStyles.faqContainer}>
           {faqs.map((faq, idx) => (
             <div
@@ -224,7 +237,7 @@ function Login({ onLoginSuccess }) {
 
       {/* SIMPLE FOOTER */}
       <footer style={landingStyles.footer}>
-        <p>© 2026 tarkaSmart. Built for deep high-performance learning ecosystems.</p>
+        <p>© 2026 tarkaSmart. Built to help students study smarter.</p>
       </footer>
     </div>
   );
@@ -699,7 +712,9 @@ export default function App() {
                     borderRadius: "6px",
                     fontSize: "13px",
                     outline: "none",
-                    flex: 1
+                    flex: 1,
+                    background: "#fff",
+                    color: "#111827"
                   }}
                   autoFocus
                 />
@@ -1104,6 +1119,7 @@ const styles = {
     border: "1px solid #d1d5db",
     fontSize: "14px",
     background: "#fff",
+    color: "#111827",
     cursor: "pointer",
     outline: "none"
   },
@@ -1262,7 +1278,9 @@ const styles = {
     border: "1px solid #d1d5db",
     borderRadius: "8px",
     fontSize: "14px",
-    outline: "none"
+    outline: "none",
+    background: "#fff",
+    color: "#111827"
   },
   chatButton: {
     padding: "10px 16px",
@@ -1284,7 +1302,9 @@ const styles = {
     border: "1px solid #d1d5db",
     borderRadius: "6px",
     fontSize: "13px",
-    outline: "none"
+    outline: "none",
+    background: "#fff",
+    color: "#111827"
   },
   taskButton: {
     padding: "6px 12px",
@@ -1325,8 +1345,8 @@ const styles = {
     },
     primaryBtn: {
       flex: 1,
-      backgroundColor: '#ffffff',
-      color: '#121212',
+      backgroundColor: '#4f46e5',
+      color: '#ffffff',
       border: 'none',
       padding: '14px 16px',
       borderRadius: '8px',
@@ -1355,9 +1375,9 @@ const styles = {
     },
     videoBtn: {
       flex: 1,
-      backgroundColor: 'rgba(168, 85, 247, 0.1)', /* Subtle tech-purple tint */
-      color: '#c084fc',
-      border: '1px solid rgba(168, 85, 247, 0.3)',
+      backgroundColor: 'rgba(79, 70, 229, 0.12)',
+      color: '#818cf8',
+      border: '1px solid rgba(79, 70, 229, 0.3)',
       padding: '14px 16px',
       borderRadius: '8px',
       fontSize: '0.9rem',
@@ -1398,7 +1418,7 @@ const landingStyles = {
     width: "400px",
     height: "400px",
     borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%)",
+    background: "radial-gradient(circle, rgba(79,70,229,0.15) 0%, rgba(0,0,0,0) 70%)",
     top: "-100px",
     left: "-100px",
     zIndex: 0
@@ -1408,7 +1428,7 @@ const landingStyles = {
     width: "500px",
     height: "500px",
     borderRadius: "50%",
-    background: "radial-gradient(circle, rgba(168,85,247,0.12) 0%, rgba(0,0,0,0) 70%)",
+    background: "radial-gradient(circle, rgba(79,70,229,0.12) 0%, rgba(0,0,0,0) 70%)",
     top: "400px",
     right: "-100px",
     zIndex: 0
@@ -1455,9 +1475,9 @@ const landingStyles = {
   },
   badge: {
     display: "inline-block",
-    background: "linear-gradient(90deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2))",
-    border: "1px solid rgba(168,85,247,0.4)",
-    color: "#c084fc",
+    background: "rgba(79,70,229,0.15)",
+    border: "1px solid rgba(79,70,229,0.4)",
+    color: "#818cf8",
     padding: "4px 12px",
     borderRadius: "20px",
     fontSize: "12px",
@@ -1474,7 +1494,7 @@ const landingStyles = {
     color: "#ffffff"
   },
   gradientText: {
-    background: "linear-gradient(90deg, #6366f1, #a855f7)",
+    background: "linear-gradient(90deg, #4f46e5, #818cf8)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent"
   },
@@ -1566,7 +1586,7 @@ const landingStyles = {
   },
   pipelineCard: {
     background: "linear-gradient(135deg, rgba(20,22,28,0.8) 0%, rgba(10,11,14,0.8) 100%)",
-    border: "1px solid rgba(99,102,241,0.2)",
+    border: "1px solid rgba(79,70,229,0.2)",
     borderRadius: "20px",
     padding: "40px",
     textAlign: "left"
@@ -1593,7 +1613,7 @@ const landingStyles = {
     width: "36px",
     height: "36px",
     borderRadius: "50%",
-    background: "#6366f1",
+    background: "#4f46e5",
     color: "#fff",
     display: "flex",
     alignItems: "center",
