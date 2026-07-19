@@ -50,6 +50,28 @@ Supabase (Postgres + `pgvector`) was chosen so that **relational data (users, se
 
 **Fallback behavior:** If no chunk clears the relevance threshold, the system does **not** silently answer from the base model as if it were grounded. It falls back to general model reasoning *and surfaces an explicit warning* that the answer isn't backed by the user's own material. This was a deliberate anti-hallucination design choice — a wrong answer with a warning is safer than a fluent, ungrounded answer with no warning.
 
+**Function**
+``sql
+  SELECT 
+    dc.id,
+    dc.content,
+    dc.source_name, -- Added
+    dc.pg_no,       -- Added
+    -- Combined score logic
+    ((1 - (dc.embedding <=> query_embedding)) * 0.7) + 
+    (ts_rank(to_tsvector('english', dc.content), plainto_tsquery('english', query_text)) * 0.3) AS similarity
+  FROM document_chunks dc
+  JOIN documents d ON dc.document_id = d.id
+  WHERE 
+    d.google_user_id = user_id_filter
+    AND (
+      (1 - (dc.embedding <=> query_embedding)) > match_threshold
+      OR to_tsvector('english', dc.content) @@ plainto_tsquery('english', query_text)
+    )
+  ORDER BY similarity DESC
+  LIMIT match_count;
+``
+
 ## 8. RAG Evaluation
 
 **Framework:** [RAGAS](https://docs.ragas.io/), measuring faithfulness, answer relevancy, context precision, and context recall.

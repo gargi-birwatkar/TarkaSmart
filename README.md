@@ -137,8 +137,7 @@ student-os/
 │   ├── student_backend.py
 │   └── requirements.txt
 ├── supabase/  
-│    └── mitigations/        # Supabase schema + pgvector setup (SQL migrations)
-│        └──00000000000000_init_schema.sql   
+│        └──schema.sql   #
 ├── eval/
 │   ├── dataset_generator.py  
 │   ├── eval_dataset.json    # output of dataset_generator.py 
@@ -160,15 +159,13 @@ cd student-os
 ```
 
 ### 2. Database setup (Supabase)
-Schema and `pgvector` setup live in the `migrations/` folder. After creating your Supabase project, run these against your database (via the Supabase SQL Editor or the Supabase CLI):
+Schema and `pgvector` setup live in [`supabase/schema.sql`](./supabase/schema.sql). After creating your Supabase project:
+ 
+1. Open your project → **SQL Editor**
+2. Paste the full contents of `supabase/schema.sql`
+3. Click **Run**
+This provisions the `pgvector` extension, the `documents`, `document_chunks`, and `user_sessions` tables, the retrieval indexes, and the `match_document_chunks` hybrid-search function.
 
-```bash
-# Using Supabase CLI
-supabase link --project-ref your-project-ref
-supabase db push
-```
-
-This provisions the required tables, indexes, and the `pgvector` extension used for embedding storage and hybrid search.
 
 ### 3. Backend setup
 ```bash

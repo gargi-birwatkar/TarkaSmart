@@ -220,8 +220,8 @@ async def chat_handler(request: Chat):
         # STEP 2: RETRIEVE CONTEXT FROM SUPABASE
         # ==========================================
         print("executing vector similarity search")
-        print("query_embedding :", query_vector)
-        print("\n\nuser_id_filter: ", request.google_user_id)
+        #print("query_embedding :", query_vector)
+        #print("\n\nuser_id_filter: ", request.google_user_id)
         
         '''db_response = supabase.rpc("match_document_chunks", {
             "query_embedding": query_vector,
@@ -248,6 +248,7 @@ async def chat_handler(request: Chat):
         # ==========================================
         # STEP 3: PREPARE AND CLEAN CONTEXT
         # ==========================================
+        #print("\n\n",chunks,"\n\n")
         context_available = bool(chunks)
         if not chunks:
             context_available = False
@@ -257,7 +258,7 @@ async def chat_handler(request: Chat):
             context_string = ""
             for item in chunks:
                 clean_content = " ".join(item['content'].split())
-                context_string += f"--- Source: {item.get('source_name', 'N/A')} (Page {item.get('page_number', 'N/A')}) ---"
+                context_string += f"--- Source: {item.get('source_name', 'N/A')} (Page {item.get('pg_no', 'N/A')}) ---"
                 context_string += f"{clean_content}"
 
             user_content = f"Context from documents:{context_string},Based on the context above, answer the user query: {request.message}"
@@ -281,7 +282,7 @@ async def chat_handler(request: Chat):
         )
         unique_sources = {}
         for c in chunks:
-            key = (c.get("source_name", "Unknown"), c.get("page_number", "N/A"))
+            key = (c.get("source_name", "Unknown"), c.get("pg_no", "N/A"))
             if key not in unique_sources:
                 unique_sources[key] = {"source_name": key[0], "page_number": key[1]}
         sources = list(unique_sources.values())
@@ -302,6 +303,7 @@ async def chat_handler(request: Chat):
                 "sources": sources,
                 "fallback_triggered": not context_available or "(⚠️ Note:" in full_answer
             }
+           # print(f"\n\n[METADATA_START]{json.dumps(metadata)}[METADATA_END]")
             yield f"\n\n[METADATA_START]{json.dumps(metadata)}[METADATA_END]"
         return StreamingResponse(final_stream_generator(),media_type="text/event-stream",
     headers={
