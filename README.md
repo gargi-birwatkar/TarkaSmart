@@ -12,7 +12,7 @@
 [![Gemini](https://img.shields.io/badge/LLM-Gemini%201.5%20Flash-4285F4?logo=googlegemini&logoColor=white&style=flat-square)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](#-license)
 
-**[🔗 Live Demo](https://tarkasmart.vercel.app)** · **[📖 Technical Deep-Dive](./technical_documentation.md)** ·
+**[🔗 Live Demo](https://tarkasmart.vercel.app)** · **[📖 Technical Deep-Dive](./technical_documentation.md)** ·**[🎬 Demo Video](https://www.youtube.com/watch?v=wKMjZjtm-qs)**
 
 </div>
 
@@ -219,7 +219,7 @@ npm install
 ## 🎥 Demo & Documentation
 - 🔗 **Live Demo:** [TARKA SMART ](https://tarkasmart.vercel.app)
 - 📖 **Engineering Deep-Dive:** [TECHNICAL_DOCUMENTATION.md](./technical_documentation.md) — build decisions, trade-offs, and how real production issues (rate limits, model swaps, evaluation bottlenecks) were solved
-- 🎬 **Demo Video:** *[Insert Link Here]*
+- 🎬 **Demo Video:** [YOUTUBE LINK](https://www.youtube.com/watch?v=wKMjZjtm-qs)
 ---
 
 ## 👩‍💻 Author
