@@ -147,7 +147,7 @@ function Login({ onLoginSuccess }) {
               {/* 3. New Video Walkthrough Trigger */}
               <button
                 type="button"
-                onClick={() => window.open('https://www.youtube.com/watch?v=YOUR_VIDEO_ID', '_blank')}
+                onClick={() => window.open('https://www.youtube.com/watch?v=wKMjZjtm-qs', '_blank')}
                 style={styles.videoBtn}
               >
                 <span style={{ marginRight: '8px', fontSize: '1.1rem' }}>🎥</span>
