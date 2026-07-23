@@ -159,7 +159,7 @@ function Login({ onLoginSuccess }) {
 
             {/* Short On Time Context Subtext */}
             <p style={styles.timeNotice}>
-              ⏱️ <strong>Short on time?</strong> Click <em>Watch Demo</em> for a 90-second system walkthrough, or use <em>Explore as Guest</em> to test the live pipeline instantly.
+              ⏱️ <strong>Short on time?</strong> Click <em>Watch Demo</em> system walkthrough, or use <em>Explore as Guest</em> to test the live pipeline instantly.
             </p>
           </div>
         </div>
